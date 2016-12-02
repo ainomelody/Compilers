@@ -28,6 +28,7 @@ ExtDefList : {$$ = newNode("ExtDefList", -1);}
 ExtDef : Specifier ExtDecList SEMI {$$ = newNode("ExtDef", $1->lineNum); addChild($$, 3, $1, $2, $3);}
 | Specifier SEMI {$$ = newNode("ExtDef", $1->lineNum); addChild($$, 2, $1, $2);}
 | Specifier FunDec CompSt {$$ = newNode("ExtDef", $1->lineNum); addChild($$, 3, $1, $2, $3);}
+| Specifier FunDec SEMI {$$ = newNode("ExtDef", $1->lineNum); addChild($$, 3, $1, $2, $3);}			//function declaration
 ;
 
 ExtDecList : VarDec {$$ = newNode("ExtDecList", $1->lineNum); addChild($$, 1, $1);}
