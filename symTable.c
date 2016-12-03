@@ -2,40 +2,41 @@
 #include "symBase.h"
 #include <string.h>
 #include <stdio.h>
+#include <stdlib.h>
 
-static void processTree(Node *tree);
+static void parseExtDef(Node *tree);
 static int getSpecifierType(Node *node);        //node->type == "Specifier"
 
 /*node->type == "DefList", it should always be called until the returned value is NULL.The first time pass in node, then NULL*/
 static varInfo *parseDefList(Node *node);   
 static varInfo *parseVarDec(Node *node);        //node->type == "VarDec"    
+static void parseCompSt(Node *node);
+
 int hasError;
 
 void analyse(Node *tree)
 {
     initScopeStack();
-    processTree(tree);
+    tree = tree->child;
+    while (tree->lineNum != -1) {
+        parseExtDef(tree->child);
+        tree = tree->child->sibling;
+    }
     //clean
 }
 
-static void processTree(Node *tree)
+static void parseExtDef(Node *node)
 {
-    if (!strcmp(tree->type, "ExtDef")) {
+    int type = getSpecifierType(node->child);
 
-    } else if (!strcmp(tree->type, "CompSt")) {
-        getInScope();
+    if (node->childNum == 2)
+        return;
+    node = node->child->sibling; //ExtDecList or FunDec
+    if (!strcmp(node->type, "ExtDecList")) {
 
-        getOutScope();
-    } else if (!strcmp(tree->type, "Exp")) {
-
-    } else if (!strcmp()) {
+    } else {    //FunDec
 
     }
-
-    if (tree->child)
-        processTree(tree->child);
-    if (tree->sibling)
-        processTree(tree->sibling);
 }
 
 static int getSpecifierType(Node *node)
@@ -45,11 +46,12 @@ static int getSpecifierType(Node *node)
     structDefInfo *stInfo, *parent, *newSt;
     char tempName[20];
     char *name = NULL;
-    symNode *defList = NULL, *symInfo;
+    Node *defList = NULL;
+    symNode *symInfo;
     varInfo *region;
 
     node = node->child;
-    if (!strcmp(node->type), "TYPE") {
+    if (!strcmp(node->type, "TYPE")) {
         if (!strcmp(node->data.type, "int"))
             return 0;
         else

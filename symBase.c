@@ -20,7 +20,7 @@ void addArrayDim(arrayInfo *info, int ubound)
 {
     if (info->pos == info->size) {
         info->size += LISTINCSIZE;
-        info->data = realloc(sizeof(int) * info->size);
+        info->data = realloc(info->data, sizeof(int) * info->size);
     }
 
     info->data[info->pos++] = ubound;
@@ -49,7 +49,7 @@ int addVariable(varList *list, varInfo *var)
 
     if (list->pos == list->size) {
         list->size += LISTINCSIZE;
-        list->data = realloc(sizeof(varInfo *) * list->size);
+        list->data = realloc(list->data, sizeof(varInfo *) * list->size);
     }
     for (i = 0; i < list->pos; i++)
         if (!strcmp(list->data[i]->name, var->name))
@@ -80,10 +80,11 @@ void getInScope()
 {
     if (scopeStack->pos == scopeStack->size) {
         scopeStack->size += LISTINCSIZE;
-        scopeStack->symData = realloc(sizeof(symNode *) * scopeStack->size);
-        scopeStack->stData = realloc(sizeof(structDefInfo *) * scopeStack->size);
+        scopeStack->symData = realloc(scopeStack->symData, sizeof(symNode *) * scopeStack->size);
+        scopeStack->stData = realloc(scopeStack->stData, sizeof(structDefInfo *) * scopeStack->size);
     }
-    scopeStack->symData[scopeStack->pos] = scopeStack->stData[scopeStack->pos] = NULL;
+    scopeStack->symData[scopeStack->pos] = NULL;
+    scopeStack->stData[scopeStack->pos] = NULL;
     scopeStack->pos++;
 }
 
@@ -92,7 +93,8 @@ void getOutScope()
     scopeStack->pos--;
     freeStInfo(scopeStack->stData[scopeStack->pos]);
     freeSymTable(scopeStack->symData[scopeStack->pos]);
-    scopeStack->stData[scopeStack->pos] = scopeStack->symData[scopeStack->pos] = NULL;
+    scopeStack->stData[scopeStack->pos] = NULL;
+    scopeStack->symData[scopeStack->pos] = NULL;
 }
 
 structDefInfo *searchStruct(char *name, int onlyCurScope, structDefInfo **parent)
