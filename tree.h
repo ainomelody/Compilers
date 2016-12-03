@@ -6,6 +6,7 @@ typedef struct Node{
 	int lineNum;
 	char type[20];
 	struct Node *child, *sibling;
+    int childNum;
 	union{
 		char *id;
 		char *type;

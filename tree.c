@@ -11,6 +11,7 @@ Node *newNode(char *type, int lineNum)
 	strcpy(ret->type, type);
 	ret->lineNum = lineNum;
 	ret->child = ret->sibling = NULL;
+	ret->childNum = 0;
 
 	return ret;
 }
@@ -53,6 +54,7 @@ void addChild(Node *father, int n, ...)
 	va_list varList;
 	Node *child;
 
+	father->childNum += i;
 	va_start(varList, n);
 	for (i = 0; i < n; i++)
 	{
