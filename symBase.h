@@ -38,9 +38,10 @@ typedef struct{
 
 typedef struct{
 /*notes: Function declarations & definitions are only admitted to appear in global scope.*/
-    
-    int flag;   //1: only definition, 2: only declaration, 3: both definition & declaration
+    char *name;
+    int flag;   //1: only declaration, 2: only definition, 3: both definition & declaration
     int retType;    // type of return value, same as type in varInfo (symBase.h)
+    int lineNum;    //records the smaller one
     varList *param;
 }funcInfo;
 
@@ -53,8 +54,7 @@ typedef struct structDefInfo{
 }structDefInfo;
 
 typedef struct symNode{
-    char name[MAXSTRLEN];
-    int lineNum;
+    char *name;
     int type;   //0: function, 1: variable
     void *info; //varInfo * or funcInfo *
     struct symNode *left, *right;
@@ -82,5 +82,9 @@ int getExpType(Node *exp);
 structDefInfo *searchStruct(char *name, int onlyCurScope, structDefInfo **parent);
 symNode *searchSymbol(char *name, int onlyCurScope, symNode **parent);
 void addStructInfo(structDefInfo *info, structDefInfo *parent);     //insert a struct info into tree
+void addSymbol(symNode *sym, symNode *parent);
+void freeVarInfo(varInfo *info);
+int matchVarList(varList *list1, varList *list2);   //check if two list is same in type
+int matchArrInfo(arrayInfo *info1, arrayInfo *info2);
 
 #endif

@@ -11,7 +11,7 @@ static int getSpecifierType(Node *node);        //node->type == "Specifier"
 static varInfo *parseDefList(Node *node);   
 static varInfo *parseVarDec(Node *node);        //node->type == "VarDec"   
 static funcInfo *parseFuncDec(Node *node); 
-static void parseCompSt(Node *node);
+static void parseCompSt(Node *node, varList *args);
 
 int hasError;
 
@@ -34,9 +34,83 @@ static void parseExtDef(Node *node)
         return;
     node = node->child->sibling; //ExtDecList or FunDec
     if (!strcmp(node->type, "ExtDecList")) {
+        node = node->child;     //VarDec
+        while (node) {
+            varInfo *var = parseVarDec(node);
+            symNode *insertLoc, *insNode;
 
+            if (searchSymbol(var->name, 1, &insertLoc)) {
+                printf("Error type 3 at Line %d: Redefined variable \"%s\".\n", var->lineNum, var->name);
+                hasError = 1;
+                freeVarInfo(var);
+            } else if (searchStruct(var->name, 1, NULL)) {
+                printf("Error type 3 at Line %d: Redefined symbol \"%s\".\n", var->lineNum, var->name);
+                hasError = 1;
+            } else {
+                var->type = type;
+                insNode = malloc(sizeof(symNode));
+                insNode->type = 1;
+                insNode->name = var->name;
+                insNode->left = insNode->right = NULL;
+                insNode->info = var;
+                addSymbol(insNode, insertLoc);
+            }
+
+            if (node->sibling == NULL)
+                node = NULL;
+            else
+                node = node->sibling->sibling->child;
+        }
     } else {    //FunDec
+        funcInfo *func = parseFuncDec(node);
+        symNode *insertLoc;
+        symNode *searchRes = searchSymbol(func->name, 1, &insertLoc);
 
+        if (!strcmp(node->sibling->type, "SEMI"))
+            func->flag = 1;
+        else
+            func->flag = 2;
+        func->retType = type;
+
+        if (searchRes) {
+            if (searchRes->type) { //variable
+                printf("Error type 4 at Line %d: Redefined symbol \"%s\".\n", func->lineNum, func->name);
+                hasError = 1;
+            }  else {   //function
+                funcInfo *prev = (funcInfo *)(searchRes->info);
+
+                if ((prev->flag & 2) && func->flag == 2) {  //redefine
+                    printf("Error type 4 at Line %d: Redefined function \"%s\".\n", func->lineNum, func->name);
+                    hasError = 1;
+                } else {    //prev def + decl or prev decl + def or prev decl + decl
+                    if (prev->retType != func->retType || !matchVarList(prev->param, func->param)) { //parameters or retType can't match
+                        if (prev->flag & 2) //prev def + decl
+                            printf("Error type 19 at Line %d: Inconsistent declaration of function \"%s\".\n", func->lineNum, func->name);
+                        else if (func->flag == 2) { //prev decl + def
+                            printf("Error type 19 at Line %d: Inconsistent declaration of function \"%s\".\n", prev->lineNum, prev->name);
+                            prev->retType = func->retType;
+                            prev->param = func->param;
+                            prev->lineNum = func->lineNum;
+                            prev->flag = 2;
+                            parseCompSt(node->sibling, func->param);
+                        } else //prev decl + decl
+                            printf("Error type 19 at Lien %d: Inconsistent declaration of function \"%s\".\n", func->lineNum, func->name); 
+                    } else    //can match
+                        prev->flag |= func->flag;
+                }
+                freeVarList(&(func->param));
+                free(func);
+            } 
+        } else {
+            symNode *insNode = malloc(sizeof(symNode));
+            insNode->name = func->name;
+            insNode->type = 0;
+            insNode->left = insNode->right = NULL;
+            insNode->info = func;
+            addSymbol(insNode, insertLoc);
+            if (func->flag == 2)
+                parseCompSt(node->sibling, func->param);
+        }
     }
 }
 
@@ -83,6 +157,7 @@ static int getSpecifierType(Node *node)
         if (stInfo)
             return (int)stInfo;
         printf("Error type 17 at Line %d: Undefined structure \"%s\".\n", node->child->lineNum, name);
+        hasError = 1;
         return -1;
     }
     newSt = malloc(sizeof(structDefInfo));
@@ -101,6 +176,7 @@ static int getSpecifierType(Node *node)
         }
         if (region->initExp != NULL) {
             printf("Error type 15 at Line %d: Initialize field \"%s\" when defining it.\n", region->initExp->lineNum, region->name);
+            hasError = 1;
             region->initExp = NULL;
         }
         region = parseDefList(NULL);
@@ -148,6 +224,8 @@ static varInfo *parseVarDec(Node *node)
 {
     varInfo *ret = malloc(sizeof(varInfo));
     ret->lineNum = node->lineNum;
+    ret->offset = 0;
+    ret->initExp = NULL;
     if (node->child->sibling == NULL) {
         ret->name = node->child->data.id;
         ret->isArray = 0;
@@ -175,6 +253,8 @@ static funcInfo *parseFuncDec(Node *node)
     varInfo *param;
     
     ret->name = node->child->data.id;
+    ret->flag = 0;
+    ret->lineNum = node->lineNum;
     if (node->childNum == 3) {
         ret->param = NULL;
         return ret;
@@ -187,8 +267,10 @@ static funcInfo *parseFuncDec(Node *node)
         param = parseVarDec(paramDec->child->sibling);
         param->type = type;
         result = addVariable(ret->param, param);
-        if (result)
+        if (result) {
             printf("Error type 3 at Line %d: Duplicated name \"%s\" in the parameters.\n", param->lineNum, param->name);
+            hasError = 1;
+        }
         if (paramDec->sibling == NULL)
             paramDec = NULL;
         else
@@ -196,4 +278,9 @@ static funcInfo *parseFuncDec(Node *node)
     }
 
     return ret;
+}
+
+static void parseCompSt(Node *node, varList *args)
+{
+
 }

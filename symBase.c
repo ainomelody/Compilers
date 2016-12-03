@@ -61,6 +61,10 @@ int addVariable(varList *list, varInfo *var)
 
 void freeVarList(varList **list)
 {
+    int i;
+
+    for (i = 0; i < (*list)->pos; i++)
+        freeVarInfo((*list)->data[i]);
     free((*list)->data);
     free(*list);
     *list = NULL;
@@ -165,7 +169,7 @@ void freeSymTable(symNode *table)
         freeSymTable(table->left);
     if (table->right != NULL)
         freeSymTable(table->right);
-
+    free(table->info);
     free(table);
 }
 
@@ -178,6 +182,7 @@ void freeStInfo(structDefInfo *info)
         freeStInfo(info->left);
     if (info->right != NULL)
         freeStInfo(info->right);
+    free(info->region);
     free(info);
 }
 
@@ -199,4 +204,57 @@ void addStructInfo(structDefInfo *info, structDefInfo *parent)
             parent->right = info;
         }
     }
+}
+
+void addSymbol(symNode *sym, symNode *parent)
+{
+    if (parent == NULL)
+        scopeStack->symData[scopeStack->pos - 1] = sym;
+    else {
+        if (strcmp(sym->name, parent->name) < 0) {
+            sym->left = parent->left;
+            parent->left = sym;
+        } else {
+            sym->right = parent->right;
+            parent->right = sym;
+        }
+    }
+}
+
+void freeVarInfo(varInfo *info)
+{
+    if (info->isArray)
+        free(info->arrInfo);
+    free(info);
+}
+
+int matchVarList(varList *list1, varList *list2)
+{
+    int i;
+
+    if (list1->pos != list2->pos)
+        return 0;
+    for (i = 0; i < list1->pos; i++) {
+        varInfo *info1 = list1->data[i], *info2 = list2->data[i];
+
+        if (info1->type != info2->type || info1->isArray != info2->isArray)
+            return 0;
+        if (info1->isArray && !matchArrInfo(info1->arrInfo, info2->arrInfo))
+            return 0;
+    }
+
+    return 1;
+}
+
+int matchArrInfo(arrayInfo *info1, arrayInfo *info2)
+{
+    int i;
+
+    if (info1->pos != info2->pos)
+        return 0;
+    for (i = 0; i < info1->pos; i++)        //In C language, the first dimension may not match.The ubound of loop is info1->pos - 1
+        if (info1->data[i] != info2->data[i])
+            return 0;
+
+    return 1;
 }
