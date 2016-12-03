@@ -9,7 +9,8 @@ static int getSpecifierType(Node *node);        //node->type == "Specifier"
 
 /*node->type == "DefList", it should always be called until the returned value is NULL.The first time pass in node, then NULL*/
 static varInfo *parseDefList(Node *node);   
-static varInfo *parseVarDec(Node *node);        //node->type == "VarDec"    
+static varInfo *parseVarDec(Node *node);        //node->type == "VarDec"   
+static funcInfo *parseFuncDec(Node *node); 
 static void parseCompSt(Node *node);
 
 int hasError;
@@ -162,6 +163,37 @@ static varInfo *parseVarDec(Node *node)
     }
 
     ret->name = node->child->data.id;
+
+    return ret;
+}
+
+static funcInfo *parseFuncDec(Node *node)
+{
+    funcInfo *ret = malloc(sizeof(funcInfo));
+    Node *paramDec;
+    int type, result;
+    varInfo *param;
+    
+    ret->name = node->child->data.id;
+    if (node->childNum == 3) {
+        ret->param = NULL;
+        return ret;
+    }
+
+    ret->param = newVarList();
+    paramDec = node->child->sibling->sibling->child;
+    while (paramDec) {
+        type = getSpecifierType(paramDec->child);
+        param = parseVarDec(paramDec->child->sibling);
+        param->type = type;
+        result = addVariable(ret->param, param);
+        if (result)
+            printf("Error type 3 at Line %d: Duplicated name \"%s\" in the parameters.\n", param->lineNum, param->name);
+        if (paramDec->sibling == NULL)
+            paramDec = NULL;
+        else
+            paramDec = paramDec->sibling->sibling->child;
+    }
 
     return ret;
 }
