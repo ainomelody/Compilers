@@ -8,6 +8,8 @@
 #define LISTINCSIZE 4
 #define MAXSTRLEN 40
 
+extern int structIndex;
+
 /*Linear table stores information of array dimension*/
 typedef struct{
     int *data;
@@ -17,8 +19,12 @@ typedef struct{
 
 /*Struct stores information of a variable*/
 typedef struct{
-    int type;   //0: int, 1: float, more than 1: a pointer to structDefInfo
+    int type;   //0: int, 1: float, more than 1: a pointer to structDefInfo, -1: undefined structure
+    int offset;
     int isArray;
+    char *name;
+    Node *initExp;
+    int lineNum;
     arrayInfo *arrInfo;
 }varInfo;
 
@@ -42,11 +48,12 @@ typedef struct{
 typedef struct structDefInfo{
     char name[MAXSTRLEN];
     varList *region;
+    int size;
     struct structDefInfo *left, *right;
 }structDefInfo;
 
 typedef struct symNode{
-    char *name;
+    char name[MAXSTRLEN];
     int lineNum;
     int type;   //0: function, 1: variable
     void *info; //varInfo * or funcInfo *
@@ -64,10 +71,16 @@ arrayInfo *newArrayInfo();
 void addArrayDim(arrayInfo *info, int ubound);
 void freeArrayInfo(arrayInfo **info);
 varList *newVarList();
-void addVariable(varList *list, varInfo *var);
+int addVariable(varList *list, varInfo *var);       //If found variable has the same name, return -1
 void freeVarList(varList **list);
-void initScopeStack();
+void initScopeStack();          //init scope stack, add a symbol table storing global symbols.
 void getInScope();
 void getOutScope();
+void freeSymTable(symNode *table);
+void freeStInfo(structDefInfo *info);
+int getExpType(Node *exp);
+structDefInfo *searchStruct(char *name, int onlyCurScope, structDefInfo **parent);
+symNode *searchSymbol(char *name, int onlyCurScope, symNode **parent);
+void addStructInfo(structDefInfo *info, structDefInfo *parent);     //insert a struct info into tree
 
 #endif

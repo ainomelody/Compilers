@@ -1,0 +1,165 @@
+#include "symTable.h"
+#include "symBase.h"
+#include <string.h>
+#include <stdio.h>
+
+static void processTree(Node *tree);
+static int getSpecifierType(Node *node);        //node->type == "Specifier"
+
+/*node->type == "DefList", it should always be called until the returned value is NULL.The first time pass in node, then NULL*/
+static varInfo *parseDefList(Node *node);   
+static varInfo *parseVarDec(Node *node);        //node->type == "VarDec"    
+int hasError;
+
+void analyse(Node *tree)
+{
+    initScopeStack();
+    processTree(tree);
+    //clean
+}
+
+static void processTree(Node *tree)
+{
+    if (!strcmp(tree->type, "ExtDef")) {
+
+    } else if (!strcmp(tree->type, "CompSt")) {
+        getInScope();
+
+        getOutScope();
+    } else if (!strcmp(tree->type, "Exp")) {
+
+    } else if (!strcmp()) {
+
+    }
+
+    if (tree->child)
+        processTree(tree->child);
+    if (tree->sibling)
+        processTree(tree->sibling);
+}
+
+static int getSpecifierType(Node *node)
+{
+    /*This function reports error 16, 17*/
+
+    structDefInfo *stInfo, *parent, *newSt;
+    char tempName[20];
+    char *name = NULL;
+    symNode *defList = NULL, *symInfo;
+    varInfo *region;
+
+    node = node->child;
+    if (!strcmp(node->type), "TYPE") {
+        if (!strcmp(node->data.type, "int"))
+            return 0;
+        else
+            return 1;
+    }
+    //node->type = "StructSpecifier"
+    node = node->child->sibling; //OptTag or Tag
+    if (!strcmp(node->type, "OptTag")) {
+        if (node->lineNum >= 0) {   //assign id
+            name = node->child->data.id;
+            stInfo = searchStruct(name, 1, &parent);
+            symInfo = searchSymbol(name, 1, NULL);
+            if (stInfo || symInfo) {
+                printf("Error type 16 at Line %d: Duplicated name \"%s\".\n", node->child->lineNum, name);
+                hasError = 1;
+            }
+            if (stInfo) //There exists structure which has the same name.
+                return (int)stInfo;
+        } else {    //anonymous structure
+            sprintf(tempName, "@struct%d", structIndex++);
+            name = tempName;
+            searchStruct(name, 1, &parent);
+        }
+        defList = node->sibling->sibling;
+    } else {    //tag
+        name = node->child->data.id;
+        stInfo = searchStruct(name, 0, NULL);
+        if (stInfo)
+            return (int)stInfo;
+        printf("Error type 17 at Line %d: Undefined structure \"%s\".\n", node->child->lineNum, name);
+        return -1;
+    }
+    newSt = malloc(sizeof(structDefInfo));
+    strcpy(newSt->name, name);
+    newSt->left = newSt->right = NULL;
+    newSt->size = 0;
+    newSt->region = newVarList();
+    addStructInfo(newSt, parent);
+
+    region = parseDefList(node->sibling->sibling);
+    while (region != NULL) {
+        int result = addVariable(newSt->region, region);
+        if (result) {
+            printf("Error type 15 at Line %d: Redefined field \"%s\".\n", region->lineNum, region->name);
+            hasError = 1;
+        }
+        if (region->initExp != NULL) {
+            printf("Error type 15 at Line %d: Initialize field \"%s\" when defining it.\n", region->initExp->lineNum, region->name);
+            region->initExp = NULL;
+        }
+        region = parseDefList(NULL);
+    }
+
+    return (int)newSt;
+}
+
+static varInfo *parseDefList(Node *node)
+{
+    static Node *defList, *decList;
+    static int type;
+    Node *varDec;
+    varInfo *ret;
+
+    if (node != NULL) {
+        defList = node;
+        decList = NULL;
+    }
+    while (defList->lineNum != -1 || decList != NULL) {
+        if (decList == NULL) {
+            type = getSpecifierType(defList->child->child);
+            decList = defList->child->child->sibling;
+            defList = defList->child->sibling;
+        }
+        varDec = decList->child->child;
+        ret = parseVarDec(varDec);
+        ret->type = type;
+
+        if (varDec->sibling != NULL)
+            ret->initExp = varDec->sibling->sibling;
+        else
+            ret->initExp = NULL;
+
+        if (decList->child->sibling == NULL)
+            decList = NULL;
+        else
+            decList = decList->child->sibling->sibling;
+        return ret;
+    }
+    return NULL;
+}
+
+static varInfo *parseVarDec(Node *node)
+{
+    varInfo *ret = malloc(sizeof(varInfo));
+    ret->lineNum = node->lineNum;
+    if (node->child->sibling == NULL) {
+        ret->name = node->child->data.id;
+        ret->isArray = 0;
+        ret->arrInfo = NULL;
+        return ret;
+    }
+
+    ret->isArray = 1;
+    ret->arrInfo = newArrayInfo();
+    while (node->child->sibling != NULL) {
+        addArrayDim(ret->arrInfo, node->child->sibling->sibling->data.intValue);
+        node = node->child;
+    }
+
+    ret->name = node->child->data.id;
+
+    return ret;
+}
