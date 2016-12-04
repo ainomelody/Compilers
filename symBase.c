@@ -237,8 +237,13 @@ int matchVarList(varList *list1, varList *list2)
     for (i = 0; i < list1->pos; i++) {
         varInfo *info1 = list1->data[i], *info2 = list2->data[i];
 
-        if (info1->type != info2->type || info1->isArray != info2->isArray)
+        if (info1->isArray != info2->isArray)
             return 0;
+        if (info1->type != info2->type)
+            if (info1->type < 2 || info2->type < 2)
+                return 0;
+            else if (!matchVarList(((structDefInfo *)(info1->type))->region, ((structDefInfo *)(info2->type))->region))
+                return 0;
         if (info1->isArray && !matchArrInfo(info1->arrInfo, info2->arrInfo))
             return 0;
     }
