@@ -3,6 +3,7 @@
 %{
 #define YYSTYPE YYVALTYPE
 #include "tree.h"
+#include "symTable.h"
 extern void yyerror(const char *msg);
 int yylex();
 %}

@@ -102,5 +102,5 @@ int main(int argc, char *argv[])
 
 void yyerror(const char *msg)
 {
-	printf("Error type B at Line %d: %s\n", msg, yylineno);
+	printf("Error type B at Line %d: %s\n", yylineno, msg);
 }
