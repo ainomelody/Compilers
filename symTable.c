@@ -20,7 +20,7 @@ static funcInfo *parseFuncDec(Node *node);
 static void parseCompSt(Node *node, varList *args);
 static expTypeInfo parseExp(Node *node);         //return the type of exp
 static void parseStmt(Node *node);               //return the type of exp in RETURN statement
-static void checkFuncDecl();                    //check if every declaration has a definition
+static void checkFuncDecl(symNode *node);                    //check if every declaration has a definition
 static int checkTypeConsist(int type1, int type2);  //check if two types are consistent
 
 int hasError;
@@ -34,7 +34,7 @@ void analyse(Node *tree)
         parseExtDef(tree->child);
         tree = tree->child->sibling;
     }
-    checkFuncDecl();
+    checkFuncDecl(globalSymTable);
     //clean
 }
 
@@ -574,9 +574,20 @@ static expTypeInfo parseExp(Node *node)
     }
 }
 
-static void checkFuncDecl()
-{
+static void checkFuncDecl(symNode *node)
+{   
+    if (node->type == 0) {
+        funcInfo *info = (funcInfo *)node->info;
 
+        if ((info->flag & 2) == 0) {
+            printf("Error type 18 at Line %d: Incomplete definition of function \"%s\".\n", info->lineNum, info->name);
+            hasError = 1;
+        }
+    }
+    if (node->left)
+        checkFuncDecl(node->left);
+    if (node->right)
+        checkFuncDecl(node->right);
 }
 
 static int checkTypeConsist(int type1, int type2)
