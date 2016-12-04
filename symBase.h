@@ -78,7 +78,6 @@ void getInScope();
 void getOutScope();
 void freeSymTable(symNode *table);
 void freeStInfo(structDefInfo *info);
-int getExpType(Node *exp);
 structDefInfo *searchStruct(char *name, int onlyCurScope, structDefInfo **parent);
 symNode *searchSymbol(char *name, int onlyCurScope, symNode **parent);
 void addStructInfo(structDefInfo *info, structDefInfo *parent);     //insert a struct info into tree
@@ -87,5 +86,6 @@ void freeVarInfo(varInfo *info);
 int matchVarList(varList *list1, varList *list2);   //check if two list is same in type
 int matchArrInfo(arrayInfo *info1, arrayInfo *info2);
 int getDimNum(varInfo *var);
+varInfo *searchRegion(structDefInfo *st, char *name);
 
 #endif

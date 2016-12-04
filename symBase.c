@@ -186,11 +186,6 @@ void freeStInfo(structDefInfo *info)
     free(info);
 }
 
-int getExpType(Node *exp)
-{
-
-}
-
 void addStructInfo(structDefInfo *info, structDefInfo *parent)
 {
     if (parent == NULL)
@@ -270,4 +265,17 @@ int getDimNum(varInfo *var)
         return 0;
     else
         return var->arrInfo->pos - 1;
+}
+
+varInfo *searchRegion(structDefInfo *st, char *name)
+{
+    int i;
+
+    if (st == NULL)
+        return NULL;
+    for (i = 0; i < st->region->pos; i++)
+        if (!strcmp(st->region->data[i]->name, name))
+            return st->region->data[i];
+
+    return NULL;
 }
