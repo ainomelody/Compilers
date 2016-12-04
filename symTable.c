@@ -34,7 +34,8 @@ void analyse(Node *tree)
         parseExtDef(tree->child);
         tree = tree->child->sibling;
     }
-    checkFuncDecl(globalSymTable);
+    if (globalSymTable != NULL)
+        checkFuncDecl(globalSymTable);
     //clean
 }
 
