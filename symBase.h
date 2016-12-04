@@ -19,7 +19,7 @@ typedef struct{
 
 /*Struct stores information of a variable*/
 typedef struct{
-    int type;   //0: int, 1: float, more than 1: a pointer to structDefInfo, -1: undefined structure
+    int type;   //0: int, 1: float, more than 1: a pointer to structDefInfo, -1: undefined structure, -2: undefined symbol or other errors
     int offset;
     int isArray;
     char *name;
@@ -86,5 +86,6 @@ void addSymbol(symNode *sym, symNode *parent);
 void freeVarInfo(varInfo *info);
 int matchVarList(varList *list1, varList *list2);   //check if two list is same in type
 int matchArrInfo(arrayInfo *info1, arrayInfo *info2);
+int getDimNum(varInfo *var);
 
 #endif

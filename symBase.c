@@ -263,3 +263,11 @@ int matchArrInfo(arrayInfo *info1, arrayInfo *info2)
 
     return 1;
 }
+
+int getDimNum(varInfo *var)
+{
+    if (!var->isArray)
+        return 0;
+    else
+        return var->arrInfo->pos - 1;
+}
