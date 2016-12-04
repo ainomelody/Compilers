@@ -4,6 +4,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+typedef struct{
+    int type;
+    int isLeft;
+    arrayInfo *dims;
+}expTypeInfo;
+
 static void parseExtDef(Node *tree);
 static int getSpecifierType(Node *node);        //node->type == "Specifier"
 
@@ -12,8 +18,13 @@ static varInfo *parseDefList(Node *node);
 static varInfo *parseVarDec(Node *node);        //node->type == "VarDec"   
 static funcInfo *parseFuncDec(Node *node); 
 static void parseCompSt(Node *node, varList *args);
+static expTypeInfo parseExp(Node *node);         //return the type of exp
+static void parseStmt(Node *node);               //return the type of exp in RETURN statement
+static void checkFuncDecl();                    //check if every declaration has a definition
+static int checkTypeConsist(int type1, int type2);  //check if two types are consistent
 
 int hasError;
+static int curFuncRetType;                      //The ret type of current function.
 
 void analyse(Node *tree)
 {
@@ -23,6 +34,7 @@ void analyse(Node *tree)
         parseExtDef(tree->child);
         tree = tree->child->sibling;
     }
+    checkFuncDecl();
     //clean
 }
 
@@ -108,8 +120,10 @@ static void parseExtDef(Node *node)
             insNode->left = insNode->right = NULL;
             insNode->info = func;
             addSymbol(insNode, insertLoc);
-            if (func->flag == 2)
+            if (func->flag == 2) {
+                curFuncRetType = type;
                 parseCompSt(node->sibling, func->param);
+            }
         }
     }
 }
@@ -191,6 +205,7 @@ static varInfo *parseDefList(Node *node)
     static int type;
     Node *varDec;
     varInfo *ret;
+    expTypeInfo retType;
 
     if (node != NULL) {
         defList = node;
@@ -206,8 +221,13 @@ static varInfo *parseDefList(Node *node)
         ret = parseVarDec(varDec);
         ret->type = type;
 
-        if (varDec->sibling != NULL)
+        if (varDec->sibling != NULL) {
             ret->initExp = varDec->sibling->sibling;
+            if (retType = parseExp(ret->initExp), retType.type != type || retType.dims) {
+                printf("Error type 5 at Line %d: Type mismatched for assignment.\n", varDec->sibling->lineNum);
+                hasError = 1;
+            }
+        }
         else
             ret->initExp = NULL;
 
@@ -282,5 +302,291 @@ static funcInfo *parseFuncDec(Node *node)
 
 static void parseCompSt(Node *node, varList *args)
 {
+    int i;
+    symNode *insNode, *insLoc, *prev;
+    varInfo *var;
 
+    getInScope();
+    if (args != NULL)
+        for (i = 0; i < args->pos; i++) {
+            searchSymbol(args->data[i]->name, 1, &insLoc);
+            insNode = malloc(sizeof(symNode));
+            insNode->type = 1;
+            insNode->left = insNode->right = NULL;
+            insNode->info = args->data[i];
+            addSymbol(insNode, insLoc);
+        }
+
+    node = node->child->sibling;    //DefList
+    var = parseDefList(node);
+    while (var) {
+        if (prev = searchSymbol(var->name, 1, &insLoc)) {
+            if (prev->type)
+                printf("Error type 3 at Line %d: Redefined variable \"%s\".\n", var->lineNum, var->name);
+            else
+                printf("Error type 3 at Line %d: Redefined symbol \"%s\".\n", var->lineNum, var->name);
+            hasError = 1;
+        } else {
+            insNode = malloc(sizeof(symNode));
+            insNode->type = 1;
+            insNode->left = insNode->right = NULL;
+            insNode->info = var;
+            addSymbol(insNode, insLoc);
+        }
+        var = parseDefList(NULL);
+    }
+
+    node = node->sibling;       //StmtList
+    while (node->lineNum != -1) {
+        parseStmt(node->child);
+        node = node->child->sibling;
+    }
+    getOutScope();
+}
+
+static void parseStmt(Node *node)
+{
+    expTypeInfo expType;
+
+    switch (node->childNum) {
+        case 1: parseCompSt(node->child, NULL); break;
+        case 2: parseExp(node->child); break;
+        case 3: if (expType = parseExp(node->child->sibling), expType.type != curFuncRetType || expType.dims) {
+                    printf("Error type 8 at Line %d: Type mismatched for return.\n", node->lineNum);
+                    hasError = 1;
+                }
+                break;
+        case 5: node = node->child->sibling->sibling;       //Exp
+                if (expType = parseExp(node->child->sibling), expType.type != 0 || expType.dims) {
+                    printf("Error type 7 at Line %d: Type mismatched for conditional statement.\n", node->lineNum);
+                    hasError = 1;
+                }
+                parseStmt(node->sibling->sibling);
+                break;
+        case 7: node = node->child->sibling->sibling;
+                if (expType = parseExp(node->child->sibling), expType.type != 0 || expType.dims) {
+                    printf("Error type 7 at Line %d: Type mismatched for conditional statement.\n", node->lineNum);
+                    hasError = 1;
+                }
+                node = node->sibling->sibling;
+                parseStmt(node);
+                parseStmt(node->sibling->sibling);
+                break;
+        default:
+            return;
+    }
+}
+
+/*retValue: lower than zero represents error.
+Legal address represents structure
+*/
+
+static expTypeInfo parseExp(Node *node)
+{
+    expTypeInfo exp1, exp2, ret = {0, 0, NULL};
+
+    switch (node->childNum)
+    {
+        case 1:
+            node = node->child;
+            if (!strcmp(node->type, "ID")) {
+                symNode *varNode = searchSymbol(node->data.id, 0, NULL);
+                if (varNode == NULL) {
+                    printf("Error type 1 at Line %d: Undefined variable \"%s\".\n", node->lineNum, node->data.id);
+                    hasError = 1;
+                    ret.isLeft = 0;
+                    ret.type = -2;
+                    return ret;
+                } else {    //found symbol
+                    if (varNode->type) {   //variable
+                        varInfo *info = (varInfo *)(varNode->info);
+
+                        ret.isLeft = 1;
+                        ret.dims = copyArrInfo(info->arrInfo);
+                        ret.type = info->type;
+                        return ret;
+                    } else {    //function
+                        printf("Error type 9 at Line %d: Function name cannot be used directly.\n", node->lineNum);
+                        hasError = 1;
+                        ret.type = -2;
+                        return ret;
+                    }
+                }
+            } else {
+                if (!strcmp(node->type, "INT"))
+                    ret.type = 0;
+                else
+                    ret.type = 1;
+
+                return ret;
+            }
+            break;
+        
+        case 2:
+            node = node->child;
+            exp1 = parseExp(node->sibling);
+            if (exp1.dims || exp1.type > 1) {
+                printf("Error type 7 at Line %d: Type mismatched for operands.\n", node->sibling->lineNum);
+                hasError = 1;
+                exp1.type = -2;
+            }
+            exp1.isLeft = 0;
+            return exp1;
+            break;
+        
+        case 3:
+            node = node->child;
+            if (!strcmp(node->type, "ID")) {
+                symNode *func = searchSymbol(node->data.id, 0, NULL);
+
+                if (func == NULL) {
+                    printf("Error type 2 at Line %d: Undefined function \"%s\".\n", node->lineNum, node->data.id);
+                    hasError = 1;
+                    ret.type = -2;
+                    return ret;
+                } else if (func->type) {    //find a variable
+                    printf("Error type 11 at Line %d: \"%s\" is not a function.\n", node->lineNum, node->data.id);
+                    hasError = 1;
+                    ret.type = -2;
+                    return ret;
+                } else {
+                    if (((funcInfo *)func->info)->param != NULL) {
+                        printf("Error type 9 at Line %d: Function \"%s\" needs parameters.\n", node->lineNum, node->data.id);
+                        hasError = 1;
+                    }
+                    ret.type = ((funcInfo *)(func->info))->retType;
+                    return ret;
+                }
+            } else if (!strcmp(node->type, "LP")) { //LP Exp RP
+                return parseExp(node->sibling); 
+            } else if (!strcmp(node->sibling->type, "DOT")) {   //Exp DOT ID
+                varInfo *region = searchRegion((structDefInfo *)exp1.type, node->sibling->sibling->data.id);
+
+                exp1 = parseExp(node);
+                if (exp1.type < 1) {
+                    printf("Error type 13 at Line %d: Illegal use of \".\".\n", node->sibling->lineNum);
+                    hasError = 1;
+                    ret.type = -2;
+                    return ret;
+                } else if (region == NULL){
+                    node = node->sibling->sibling;
+                    printf("Error type 14 at Line %d: Non-existent field \"%s\".\n", node->lineNum, node->data.id);
+                    hasError = 1;
+                    ret.type = -2;
+                    return ret;
+                } else {
+                    ret.type = region->type;
+                    ret.isLeft = 1;
+                    ret.dims = copyArrInfo(region->arrInfo);
+
+                    return ret;
+                }
+            } else {
+                exp1 = parseExp(node);
+                exp2 = parseExp(node->sibling->sibling);
+
+                if (!strcmp(node->sibling->type, "ASSIGNOP")) {
+                    if (!exp1.isLeft || exp1.dims) {
+                        printf("Error type 6 at Line %d: The left-hand side of an assignment must be a variable.\n", node->lineNum);
+                        hasError = 1;
+                        ret.type = -2;
+                        return ret;
+                    }
+                }
+                if (exp1.type != exp2.type || exp1.dims != NULL || exp2.dims != NULL) {
+                    printf("Error type 7 at Line %d: Type mismatched for operands.\n", node->lineNum);
+                    hasError = 1;
+                    ret.type = -2;
+                    return ret;
+                }
+                ret.type = exp1.type;
+                return ret;
+            }
+        case 4:
+            node = node->child;
+            if (!strcmp(node->type, "ID")) { //function call
+                symNode *func = searchSymbol(node->data.id, 0, NULL);
+                varList *args;
+                int lineNum;
+
+                if (func == NULL) {
+                    printf("Error type 2 at Line %d: Undefined function \"%s\".\n", node->lineNum, node->data.id);
+                    hasError = 1;
+                    ret.type = -2;
+                    return ret;
+                } else if (func->type) {    //find a variable
+                    printf("Error type 11 at Line %d: \"%s\" is not a function.\n", node->lineNum, node->data.id);
+                    hasError = 1;
+                    ret.type = -2;
+                    return ret;
+                }
+
+                args = newVarList();
+                node = node->sibling->sibling->child;
+                lineNum = node->lineNum;
+                while (node) {
+                    expTypeInfo info = parseExp(node);
+                    varInfo *var = malloc(sizeof(varInfo));
+
+                    var->type = info.type;
+                    var->arrInfo = info.dims;
+                    if (info.dims) 
+                        var->isArray = 1;
+                    else
+                        var->isArray = 0;
+                    addVariable(args, var);
+
+                    if (node->sibling == NULL)
+                        node = NULL;
+                    else
+                        node = node->sibling->sibling->child;
+                }
+                if (!matchVarList(args, ((funcInfo *)func->info)->param)) {
+                    printf("Error type 9 at Line %d: Wrong type of parameters for function \"%s\".\n", lineNum,func->name);
+                    hasError = 1;
+                }
+                ret.type = ((funcInfo *)func->info)->retType;
+
+                return ret;
+            } else {    //array
+                exp1 = parseExp(node);
+                exp2 = parseExp(node->sibling->sibling);
+
+                if (exp1.dims == NULL) {
+                    printf("Error type 10 at Line %d: Use too many [].\n", node->lineNum);
+                    ret.type = -2;
+                    return ret;
+                }
+
+                if (exp2.type != 0 || exp2.dims) {
+                    printf("Error type 12 at Line %d: The index of array should be an integer.\n", node->sibling->sibling->lineNum);
+                    hasError = 1;
+                }
+                ret.type = exp1.type;
+                ret.dims = removeOneDim(exp1.dims);
+                return ret;
+            }
+
+            break;
+        default:
+            ret.type = -2;
+            return ret;
+    }
+}
+
+static void checkFuncDecl()
+{
+
+}
+
+static int checkTypeConsist(int type1, int type2)
+{
+    int ret, i;
+
+    if (type1 == type2)
+        return 1;
+    if (type1 < 2 || type2 < 2)
+        return 0;
+
+    return matchVarList(((structDefInfo *)type1)->region, ((structDefInfo *)type2)->region);
 }

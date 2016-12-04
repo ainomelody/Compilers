@@ -88,5 +88,6 @@ int matchArrInfo(arrayInfo *info1, arrayInfo *info2);
 int getDimNum(varInfo *var);
 varInfo *searchRegion(structDefInfo *st, char *name);
 arrayInfo *copyArrInfo(arrayInfo *toCopy);
+arrayInfo *removeOneDim(arrayInfo *info);
 
 #endif

@@ -287,7 +287,7 @@ arrayInfo *copyArrInfo(arrayInfo *toCopy)
 
     if (toCopy == NULL)
         return NULL;
-    
+
     ret = malloc(sizeof(arrayInfo));
     ret->size = toCopy->size;
     ret->pos = toCopy->pos;
@@ -296,4 +296,20 @@ arrayInfo *copyArrInfo(arrayInfo *toCopy)
         ret->data[i] = toCopy->data[i];
 
     return ret;
+}
+
+arrayInfo *removeOneDim(arrayInfo *info)
+{
+    int i;
+
+    if (info->pos == 1) {
+        freeArrayInfo(&info);
+        return NULL;
+    }
+    for (i = 0; i < info->pos - 1; i++)
+        info->data[i] = info->data[i + 1];
+
+    info->pos--;
+
+    return info;
 }
