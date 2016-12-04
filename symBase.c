@@ -279,3 +279,21 @@ varInfo *searchRegion(structDefInfo *st, char *name)
 
     return NULL;
 }
+
+arrayInfo *copyArrInfo(arrayInfo *toCopy)
+{
+    int i;
+    arrayInfo *ret;
+
+    if (toCopy == NULL)
+        return NULL;
+    
+    ret = malloc(sizeof(arrayInfo));
+    ret->size = toCopy->size;
+    ret->pos = toCopy->pos;
+    ret->data = malloc(sizeof(int) * ret->size);
+    for (i = 0; i < ret->pos; i++)
+        ret->data[i] = toCopy->data[i];
+
+    return ret;
+}

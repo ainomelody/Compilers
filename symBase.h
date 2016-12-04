@@ -87,5 +87,6 @@ int matchVarList(varList *list1, varList *list2);   //check if two list is same 
 int matchArrInfo(arrayInfo *info1, arrayInfo *info2);
 int getDimNum(varInfo *var);
 varInfo *searchRegion(structDefInfo *st, char *name);
+arrayInfo *copyArrInfo(arrayInfo *toCopy);
 
 #endif
