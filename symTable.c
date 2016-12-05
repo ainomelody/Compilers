@@ -360,14 +360,14 @@ static void parseStmt(Node *node)
                 }
                 break;
         case 5: node = node->child->sibling->sibling;       //Exp
-                if (expType = parseExp(node->child->sibling), expType.type != 0 || expType.dims) {
+                if (expType = parseExp(node), expType.type != 0 || expType.dims) {
                     printf("Error type 7 at Line %d: Type mismatched for conditional statement.\n", node->lineNum);
                     hasError = 1;
                 }
                 parseStmt(node->sibling->sibling);
                 break;
         case 7: node = node->child->sibling->sibling;
-                if (expType = parseExp(node->child->sibling), expType.type != 0 || expType.dims) {
+                if (expType = parseExp(node), expType.type != 0 || expType.dims) {
                     printf("Error type 7 at Line %d: Type mismatched for conditional statement.\n", node->lineNum);
                     hasError = 1;
                 }
