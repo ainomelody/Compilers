@@ -573,6 +573,7 @@ static expTypeInfo parseExp(Node *node)
                 }
                 ret.type = exp1.type;
                 ret.dims = removeOneDim(exp1.dims);
+                ret.isLeft = (ret.dims == NULL);
                 return ret;
             }
 
@@ -589,7 +590,7 @@ static void checkFuncDecl(symNode *node)
         funcInfo *info = (funcInfo *)node->info;
 
         if ((info->flag & 2) == 0) {
-            printf("Error type 18 at Line %d: Incomplete definition of function \"%s\".\n", info->lineNum, info->name);
+            printf("Error type 18 at Line %d: Undefined function \"%s\" but declaration provided.\n", info->lineNum, info->name);
             hasError = 1;
         }
     }
