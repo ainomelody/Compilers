@@ -4,7 +4,7 @@
 #include <stdio.h>
 
 symTableStack *scopeStack;
-symNode *globalSymTable;
+symNode **globalSymTable;
 
 int structIndex = 0;    //name assign to the anonymous struct type, @struct+structIndex
 arrayInfo *newArrayInfo()
@@ -64,6 +64,8 @@ void freeVarList(varList **list)
 {
     int i;
 
+    if (*list == NULL)
+        return;
     for (i = 0; i < (*list)->pos; i++)
         freeVarInfo((*list)->data[i]);
     free((*list)->data);
@@ -79,7 +81,7 @@ void initScopeStack()
     scopeStack->stData = malloc(sizeof(structDefInfo *) * 10);
     scopeStack->pos = 0;
     getInScope();
-    globalSymTable = scopeStack->symData[0];
+    globalSymTable = scopeStack->symData;
 }
 
 void getInScope()
