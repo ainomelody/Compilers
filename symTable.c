@@ -332,6 +332,7 @@ static void parseCompSt(Node *node, varList *args)
             insNode->type = 1;
             insNode->left = insNode->right = NULL;
             insNode->info = var;
+            insNode->name = var->name;
             addSymbol(insNode, insLoc);
         }
         var = parseDefList(NULL);
@@ -464,8 +465,8 @@ static expTypeInfo parseExp(Node *node)
                 varInfo *region;
 
                 exp1 = parseExp(node);
-                region =  = searchRegion((structDefInfo *)exp1.type, node->sibling->sibling->data.id);
-                
+                region = searchRegion((structDefInfo *)exp1.type, node->sibling->sibling->data.id);
+
                 if (exp1.type < 1) {
                     printf("Error type 13 at Line %d: Illegal use of \".\".\n", node->sibling->lineNum);
                     hasError = 1;
