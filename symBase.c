@@ -240,13 +240,10 @@ int matchVarList(varList *list1, varList *list2)
 
         if (info1->isArray != info2->isArray)
             return 0;
-        if (info1->type != info2->type)
-            if (info1->type < 2 || info2->type < 2)
-                return 0;
-            else if (!matchVarList(((structDefInfo *)(info1->type))->region, ((structDefInfo *)(info2->type))->region))
-                return 0;
         if (info1->isArray && !matchArrInfo(info1->arrInfo, info2->arrInfo))
             return 0;
+        if (!checkTypeConsist(info1->type, info2->type))
+                return 0;
     }
 
     return 1;
@@ -318,4 +315,16 @@ arrayInfo *removeOneDim(arrayInfo *info)
     info->pos--;
 
     return info;
+}
+
+int checkTypeConsist(int type1, int type2)
+{
+    int ret, i;
+
+    if (type1 == type2)
+        return 1;
+    if (type1 < 2 || type2 < 2)
+        return 0;
+
+    return matchVarList(((structDefInfo *)type1)->region, ((structDefInfo *)type2)->region);
 }

@@ -91,5 +91,6 @@ int getDimNum(varInfo *var);
 varInfo *searchRegion(structDefInfo *st, char *name);
 arrayInfo *copyArrInfo(arrayInfo *toCopy);
 arrayInfo *removeOneDim(arrayInfo *info);
+int checkTypeConsist(int type1, int type2);
 
 #endif

@@ -21,7 +21,6 @@ static void parseCompSt(Node *node, varList *args);
 static expTypeInfo parseExp(Node *node);         //return the type of exp
 static void parseStmt(Node *node);               //return the type of exp in RETURN statement
 static void checkFuncDecl(symNode *node);                    //check if every declaration has a definition
-static int checkTypeConsist(int type1, int type2);  //check if two types are consistent
 
 int hasError;
 static int curFuncRetType;                      //The ret type of current function.
@@ -598,16 +597,4 @@ static void checkFuncDecl(symNode *node)
         checkFuncDecl(node->left);
     if (node->right)
         checkFuncDecl(node->right);
-}
-
-static int checkTypeConsist(int type1, int type2)
-{
-    int ret, i;
-
-    if (type1 == type2)
-        return 1;
-    if (type1 < 2 || type2 < 2)
-        return 0;
-
-    return matchVarList(((structDefInfo *)type1)->region, ((structDefInfo *)type2)->region);
 }
