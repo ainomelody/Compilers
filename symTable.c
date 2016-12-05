@@ -538,6 +538,7 @@ static expTypeInfo parseExp(Node *node)
 
                     var->type = info.type;
                     var->arrInfo = info.dims;
+                    var->name = NULL;
                     if (info.dims) 
                         var->isArray = 1;
                     else

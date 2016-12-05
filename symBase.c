@@ -52,9 +52,11 @@ int addVariable(varList *list, varInfo *var)
         list->size += LISTINCSIZE;
         list->data = realloc(list->data, sizeof(varInfo *) * list->size);
     }
-    for (i = 0; i < list->pos; i++)
-        if (!strcmp(list->data[i]->name, var->name))
-            return -1;
+    if (var->name != NULL)
+        for (i = 0; i < list->pos; i++)
+            if (!strcmp(list->data[i]->name, var->name))
+                return -1;
+
     list->data[list->pos++] = var;
 
     return 0;
