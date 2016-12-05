@@ -52,7 +52,7 @@ void addChild(Node *father, int n, ...)
 	va_list varList;
 	Node *child;
 
-	father->childNum += i;
+	father->childNum += n;
 	va_start(varList, n);
 	for (i = 0; i < n; i++)
 	{
