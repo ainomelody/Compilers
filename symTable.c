@@ -315,6 +315,7 @@ static void parseCompSt(Node *node, varList *args)
             insNode->type = 1;
             insNode->left = insNode->right = NULL;
             insNode->info = args->data[i];
+            insNode->name = args->data[i]->name;
             addSymbol(insNode, insLoc);
         }
 
