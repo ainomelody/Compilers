@@ -67,6 +67,8 @@ typedef struct{
     int pos;    
 }symTableStack;
 
+extern symNode *globalSymTable;
+
 arrayInfo *newArrayInfo();
 void addArrayDim(arrayInfo *info, int ubound);
 void freeArrayInfo(arrayInfo **info);

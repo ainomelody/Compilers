@@ -20,8 +20,6 @@ void printTree(Node *tree, int level)
 {
 	int i;
 
-	if (tree->lineNum < 0)
-		return;
 	for (i = 0; i < 2 * level; i++)
 		putchar(' ');
 	printf("%s", tree->type);

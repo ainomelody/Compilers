@@ -4,6 +4,7 @@
 #include <stdio.h>
 
 symTableStack *scopeStack;
+symNode *globalSymTable;
 
 int structIndex = 0;    //name assign to the anonymous struct type, @struct+structIndex
 arrayInfo *newArrayInfo()
@@ -78,6 +79,7 @@ void initScopeStack()
     scopeStack->stData = malloc(sizeof(structDefInfo *) * 10);
     scopeStack->pos = 0;
     getInScope();
+    globalSymTable = scopeStack->symData[0];
 }
 
 void getInScope()

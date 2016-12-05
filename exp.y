@@ -19,7 +19,7 @@ int yylex();
 %left DOT LP RP LB RB
 
 %%
-Program : ExtDefList {$$ = newNode("Program", $1->lineNum); addChild($$, 1, $1); printTree($$, 1); freeTree($$);}
+Program : ExtDefList {$$ = newNode("Program", $1->lineNum); addChild($$, 1, $1); analyse($$); freeTree($$);}
 ;
 
 ExtDefList : {$$ = newNode("ExtDefList", -1);}
