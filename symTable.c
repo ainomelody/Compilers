@@ -499,7 +499,10 @@ static expTypeInfo parseExp(Node *node)
                     }
                 }
                 if (exp1.type != exp2.type || exp1.dims != NULL || exp2.dims != NULL) {
-                    printf("Error type 7 at Line %d: Type mismatched for operands.\n", node->lineNum);
+                    if (!strcmp(node->sibling->type, "ASSIGNOP"))
+                        printf("Error type 5 at Line %d: Type mismatched for assignment.\n", node->lineNum);
+                    else
+                        printf("Error type 7 at Line %d: Type mismatched for operands.\n", node->lineNum);
                     hasError = 1;
                     ret.type = -2;
                     return ret;
