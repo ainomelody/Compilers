@@ -34,8 +34,8 @@ void analyse(Node *tree)
         parseExtDef(tree->child);
         tree = tree->child->sibling;
     }
-    if (globalSymTable != NULL)
-        checkFuncDecl(globalSymTable);
+    if (*globalSymTable != NULL)
+        checkFuncDecl(*globalSymTable);
     //clean
 }
 
@@ -461,9 +461,11 @@ static expTypeInfo parseExp(Node *node)
             } else if (!strcmp(node->type, "LP")) { //LP Exp RP
                 return parseExp(node->sibling); 
             } else if (!strcmp(node->sibling->type, "DOT")) {   //Exp DOT ID
-                varInfo *region = searchRegion((structDefInfo *)exp1.type, node->sibling->sibling->data.id);
+                varInfo *region;
 
                 exp1 = parseExp(node);
+                region =  = searchRegion((structDefInfo *)exp1.type, node->sibling->sibling->data.id);
+                
                 if (exp1.type < 1) {
                     printf("Error type 13 at Line %d: Illegal use of \".\".\n", node->sibling->lineNum);
                     hasError = 1;
