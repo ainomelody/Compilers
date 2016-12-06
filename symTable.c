@@ -104,14 +104,13 @@ static void parseExtDef(Node *node)
                             prev->param = func->param;
                             prev->lineNum = func->lineNum;
                             prev->flag = 2;
+                            curFuncRetType = type;
                             parseCompSt(node->sibling, func->param);
                         } else //prev decl + decl
                             printf("Error type 19 at Lien %d: Inconsistent declaration of function \"%s\".\n", func->lineNum, func->name); 
                     } else    //can match
                         prev->flag |= func->flag;
                 }
-                freeVarList(&(func->param));
-                free(func);
             } 
         } else {
             symNode *insNode = malloc(sizeof(symNode));
@@ -135,7 +134,6 @@ static int getSpecifierType(Node *node)
     structDefInfo *stInfo, *parent, *newSt;
     char tempName[20];
     char *name = NULL;
-    Node *defList = NULL;
     symNode *symInfo;
     varInfo *region;
 
@@ -159,12 +157,13 @@ static int getSpecifierType(Node *node)
             }
             if (stInfo) //There exists structure which has the same name.
                 return (int)stInfo;
+            if (symInfo)
+                return -2;
         } else {    //anonymous structure
             sprintf(tempName, "@struct%d", structIndex++);
             name = tempName;
             searchStruct(name, 1, &parent);
         }
-        defList = node->sibling->sibling;
     } else {    //tag
         name = node->child->data.id;
         stInfo = searchStruct(name, 0, NULL);
@@ -223,7 +222,7 @@ static varInfo *parseDefList(Node *node)
 
         if (varDec->sibling != NULL) {
             ret->initExp = varDec->sibling->sibling;
-            if (retType = parseExp(ret->initExp), retType.type != type || retType.dims) {
+            if (retType = parseExp(ret->initExp), !checkTypeConsist(retType.type, type) || retType.dims) {
                 printf("Error type 5 at Line %d: Type mismatched for assignment.\n", varDec->sibling->lineNum);
                 hasError = 1;
             }
@@ -255,7 +254,7 @@ static varInfo *parseVarDec(Node *node)
 
     ret->isArray = 1;
     ret->arrInfo = newArrayInfo();
-    while (node->child->sibling != NULL) {
+    while (node->child->sibling != NULL) {  //dims are stored from back to front
         addArrayDim(ret->arrInfo, node->child->sibling->sibling->data.intValue);
         node = node->child;
     }
@@ -353,7 +352,7 @@ static void parseStmt(Node *node)
     switch (node->childNum) {
         case 1: parseCompSt(node->child, NULL); break;
         case 2: parseExp(node->child); break;
-        case 3: if (expType = parseExp(node->child->sibling), expType.type != curFuncRetType || expType.dims) {
+        case 3: if (expType = parseExp(node->child->sibling), !checkTypeConsist(expType.type, curFuncRetType) || expType.dims) {
                     printf("Error type 8 at Line %d: Type mismatched for return.\n", node->lineNum);
                     hasError = 1;
                 }
@@ -379,10 +378,6 @@ static void parseStmt(Node *node)
     }
 }
 
-/*retValue: lower than zero represents error.
-Legal address represents structure
-*/
-
 static expTypeInfo parseExp(Node *node)
 {
     expTypeInfo exp1, exp2, ret = {0, 0, NULL};
@@ -403,7 +398,7 @@ static expTypeInfo parseExp(Node *node)
                     if (varNode->type) {   //variable
                         varInfo *info = (varInfo *)(varNode->info);
 
-                        ret.isLeft = 1;
+                        ret.isLeft = !info->isArray;
                         ret.dims = copyArrInfo(info->arrInfo);
                         ret.type = info->type;
                         return ret;
@@ -470,7 +465,7 @@ static expTypeInfo parseExp(Node *node)
                 else
                     region = searchRegion((structDefInfo *)exp1.type, node->sibling->sibling->data.id);
 
-                if (exp1.type < 1 || exp1.dims) {
+                if (exp1.type < 10 || exp1.dims) {
                     printf("Error type 13 at Line %d: Illegal use of \".\".\n", node->sibling->lineNum);
                     hasError = 1;
                     ret.type = -2;
@@ -483,7 +478,7 @@ static expTypeInfo parseExp(Node *node)
                     return ret;
                 } else {
                     ret.type = region->type;
-                    ret.isLeft = 1;
+                    ret.isLeft = !region->isArray;
                     ret.dims = copyArrInfo(region->arrInfo);
 
                     return ret;
