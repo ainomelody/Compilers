@@ -465,9 +465,12 @@ static expTypeInfo parseExp(Node *node)
                 varInfo *region;
 
                 exp1 = parseExp(node);
-                region = searchRegion((structDefInfo *)exp1.type, node->sibling->sibling->data.id);
+                if (exp1.type < 10)
+                    region = NULL;
+                else
+                    region = searchRegion((structDefInfo *)exp1.type, node->sibling->sibling->data.id);
 
-                if (exp1.type < 1) {
+                if (exp1.type < 1 || exp1.dims) {
                     printf("Error type 13 at Line %d: Illegal use of \".\".\n", node->sibling->lineNum);
                     hasError = 1;
                     ret.type = -2;
