@@ -17,6 +17,8 @@ int yylex();
 %left STAR DIV
 %right NOT
 %left DOT LP RP LB RB
+%nonassoc LOWER_THAN_ELSE
+%nonassoc ELSE
 
 %%
 Program : ExtDefList {$$ = newNode("Program", $1->lineNum); addChild($$, 1, $1); analyse($$); freeTree($$);}
@@ -76,7 +78,7 @@ StmtList : {$$ = newNode("StmtList", -1);}
 Stmt : Exp SEMI {$$ = newNode("Stmt", $1->lineNum); addChild($$, 2, $1, $2);}
 | CompSt {$$ = newNode("Stmt", $1->lineNum); addChild($$, 1, $1);}
 | RETURN Exp SEMI {$$ = newNode("Stmt", $1->lineNum); addChild($$, 3, $1, $2, $3);}
-| IF LP Exp RP Stmt {$$ = newNode("Stmt", $1->lineNum); addChild($$, 5, $1, $2, $3, $4, $5);}
+| IF LP Exp RP Stmt %prec LOWER_THAN_ELSE {$$ = newNode("Stmt", $1->lineNum); addChild($$, 5, $1, $2, $3, $4, $5);}
 | IF LP Exp RP Stmt ELSE Stmt {$$ = newNode("Stmt", $1->lineNum); addChild($$, 7, $1, $2, $3, $4, $5, $6, $7);}
 | WHILE LP Exp RP Stmt {$$ = newNode("Stmt", $1->lineNum); addChild($$, 5, $1, $2, $3, $4, $5);}
 ;
