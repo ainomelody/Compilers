@@ -101,8 +101,8 @@ void getInScope()
 void getOutScope()
 {
     scopeStack->pos--;
-    freeStInfo(scopeStack->stData[scopeStack->pos]);
-    freeSymTable(scopeStack->symData[scopeStack->pos]);
+    // freeStInfo(scopeStack->stData[scopeStack->pos]);
+    // freeSymTable(scopeStack->symData[scopeStack->pos]);
     scopeStack->stData[scopeStack->pos] = NULL;
     scopeStack->symData[scopeStack->pos] = NULL;
 }
@@ -327,4 +327,38 @@ int checkTypeConsist(int type1, int type2)
         return 0;
 
     return matchVarList(((structDefInfo *)type1)->region, ((structDefInfo *)type2)->region);
+}
+
+int sizeOfVar(varInfo *var)
+{
+    int size;
+    int i;
+
+    if (var == NULL)
+        return 0;
+    size = sizeOfType(var->type);
+    
+    if (!var->isArray)
+        return size;
+    for (i = 0; i < var->arrInfo->pos; i++)
+        size *= var->arrInfo->data[i];
+
+    return size;
+}
+
+int sizeOfType(int type)
+{
+    int i;
+    int total = 0;
+    structDefInfo *st;
+
+    if (type < 0)
+        return 0;
+    if (type < 10)
+        return 4;
+    st = (structDefInfo *)type;
+    for (i = 0; i < st->region->pos; i++)
+        total += sizeOfVar(st->region->data[i]);
+
+    return total;
 }
