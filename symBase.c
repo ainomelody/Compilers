@@ -357,8 +357,9 @@ int sizeOfType(int type)
     if (type < 10)
         return 4;
     st = (structDefInfo *)type;
-    for (i = 0; i < st->region->pos; i++)
-        total += sizeOfVar(st->region->data[i]);
+    // for (i = 0; i < st->region->pos; i++)
+    //     total += sizeOfVar(st->region->data[i]);
 
-    return total;
+    // return total;
+    return st->size;
 }
