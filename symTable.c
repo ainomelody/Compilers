@@ -1,5 +1,6 @@
 #include "symTable.h"
 #include "symBase.h"
+#include "midCode.h"
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -28,6 +29,7 @@ static int curFuncRetType;                      //The ret type of current functi
 void analyse(Node *tree)
 {
     initScopeStack();
+    initCodeCollection();
     tree = tree->child;
     while (tree->lineNum != -1) {
         parseExtDef(tree->child);
@@ -119,6 +121,7 @@ static void parseExtDef(Node *node)
             insNode->left = insNode->right = NULL;
             insNode->info = func;
             addSymbol(insNode, insertLoc);
+            addFunction(func);
             if (func->flag == 2) {
                 curFuncRetType = type;
                 parseCompSt(node->sibling, func->param);
@@ -192,6 +195,8 @@ static int getSpecifierType(Node *node)
             hasError = 1;
             region->initExp = NULL;
         }
+        region->offset = newSt->size;
+        newSt->size += sizeOfVar(region);
         region = parseDefList(NULL);
     }
 
@@ -333,6 +338,7 @@ static void parseCompSt(Node *node, varList *args)
             insNode->info = var;
             insNode->name = var->name;
             addSymbol(insNode, insLoc);
+            addLocalVar(var);
         }
         var = parseDefList(NULL);
     }
