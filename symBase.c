@@ -309,8 +309,6 @@ arrayInfo *removeOneDim(arrayInfo *info)
         freeArrayInfo(&info);
         return NULL;
     }
-    for (i = 0; i < info->pos - 1; i++)
-        info->data[i] = info->data[i + 1];
 
     info->pos--;
 
