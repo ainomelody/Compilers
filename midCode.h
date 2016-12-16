@@ -23,16 +23,22 @@
 16. WRITE target
 */
 
+typedef struct{
+    int isImm;  //is immediate number or not
+    int value;  //immediate number or points to a variable
+}valueSt;
+
 typedef struct tripleCode{
     int target;
     int op;
-    int arg1, arg2;
+    valueSt arg1, arg2;
     struct tripleCode *prev, *next;
 }tripleCode;
 
 typedef struct {
     tripleCode *code;
     funcInfo *info;
+    varList *toAlloc;   //array or structure needs space allocation.
     int space;  //space the local variable needs
 }funcCode;
 
@@ -42,9 +48,25 @@ typedef struct{
     int pos;
 }codeCollection;
 
+typedef struct{
+    valueSt base, offset;
+    int hasOffset;
+    int type;
+    arrayInfo *toTimes;
+}expTransInfo;
+
+extern int labelNum;
+
 void initCodeCollection();
 void addFunction(funcInfo *func);
 void addLocalVar(varInfo *var);
-void addCode(int op, int target, int arg1, int arg2);
+void addCode(int op, int target, valueSt *arg1, valueSt *arg2);
+tripleCode *getLastCode();
+int getTempVar();
+void releaseTempVar(int index);
+expTransInfo translateExp(Node *node);
+void addIOFunc();
+void printCodes();
+int processOffset(valueSt *base, valueSt *offset);
 
 #endif
