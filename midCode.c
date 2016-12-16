@@ -10,8 +10,9 @@ static funcCode *curFunc;
 int labelNum;
 static int tempVarIndex;
 static int tempVarUsed[TEMPVARNUM];
+
 static int isTempVar(valueSt *st);
-static expTransInfo execOpr(int op, expTransInfo *arg1, expTransInfo *arg2);
+static expTransInfo execOp(int op, expTransInfo *arg1, expTransInfo *arg2);
 static int mergeOp(int target, int op, valueSt *st);
 
 void initCodeCollection()
@@ -86,6 +87,7 @@ expTransInfo translateExp(Node *node)
     int childNum = node->childNum;
     symNode *searchedSym;
     varInfo *searchedVar;
+    funcInfo *searchedFunc;
 
     node = node->child;
     switch(childNum) {
@@ -95,7 +97,7 @@ expTransInfo translateExp(Node *node)
                 searchedSym = searchSymbol(node->data.id, 0, NULL);
                 searchedVar = (varInfo *)searchedSym->info;
                 ret.base.value = (int)searchedVar;
-                ret.hasOffset = searchedVar->isArray;
+                ret.hasOffset = 0;
                 ret.toTimes = copyArrInfo(searchedVar->arrInfo);
                 if (ret.hasOffset)
                     ret.toTimes = removeOneDim(ret.toTimes);
@@ -108,11 +110,147 @@ expTransInfo translateExp(Node *node)
             }
             break;
         case 2:
-
+            exp1 = translateExp(node->sibling);
+            exp2.hasOffset = 0;
+            exp2.base.isImm = 1;
+            exp2.base.value = 0;
+            return execOp(4, &exp2, &exp1);
             break;
         case 3:
+            if (!strcmp(node->type, "LP"))
+                return translateExp(node->sibling);
+            else if (!strcmp(node->type, "ID")) {
+                int target = getTempVar();
+                valueSt funcSt;
+
+                if (!strcmp(node->data.id, "read")) {
+                    addCode(15, target, &funcSt, &funcSt);
+                    ret.base.isImm = 0;
+                    ret.base.value = target;
+                    return ret;
+                }
+                searchedSym = searchSymbol(node->data.id, 0, NULL);
+                funcSt.value = (int)(searchedSym->info);
+                addCode(14, target, &funcSt, &funcSt);
+                ret.base.isImm = 0;
+                ret.base.value = target;
+                return ret;
+            } else if (!strcmp(node->sibling->type, "DOT")) {
+                valueSt offsetSt;
+
+                exp1 = translateExp(node);
+                searchedVar = searchRegion((structDefInfo *)exp1.type, node->sibling->sibling->data.id);
+                ret.type = searchedVar->type;
+                ret.hasOffset = 1;
+                ret.toTimes = copyArrInfo(searchedVar->arrInfo);
+                ret.toTimes = removeOneDim(ret.toTimes);
+                if (!exp1.hasOffset || exp1.offset.isImm) {
+                    exp1.hasOffset = 1;
+                    ret.offset.value = exp1.offset.value + searchedVar->offset;
+                } else {
+                    offsetSt.isImm = 1;
+                    offsetSt.value = searchedVar->offset;
+                    addCode(3, exp1.offset.value, &exp1.offset, &offsetSt);
+                    ret.offset.isImm = 0;
+                    ret.offset.value = exp1.offset.value;
+                }
+                return ret;
+            } else if (!strcmp(node->sibling->type, "ASSIGNOP")) {
+                tripleCode *last = getLastCode();
+                int assignTar;
+
+                exp1 = translateExp(node);
+                if (exp1.hasOffset)
+                    assignTar = processOffset(&exp1);
+                else
+                    assignTar = exp1.base.value;
+
+                exp2 = translateExp(node->sibling->sibling);
+                if (isTempVar(&exp2.base))     //replace the temp variable with variable
+                    last->target = assignTar;
+                else
+                    addCode(2, assignTar, &exp2.base, &exp2.base);
+                ret.base.value = assignTar;
+                ret.base.isImm = 0;
+                ret.hasOffset = 0;                
+
+            } else {
+                int op;
+
+                if (!strcmp(node->sibling->type, "PLUS"))
+                    op = 3;
+                else if (!strcmp(node->sibling->type, "MINUS"))
+                    op = 4;
+                else if (!strcmp(node->sibling->type, "STAR"))
+                    op = 5;
+                else
+                    op = 6;
+                exp1 = translateExp(node);
+                exp2 = translateExp(node->sibling->sibling);
+                return execOp(op, &exp1, &exp2);
+            }
             break;
         case 4:
+            if (!strcmp(node->type, "ID")) {    //function call
+                Node *arg = node->sibling->sibling->child;
+                Node *argStack[40];
+                int argNum = 0;
+                int tarTemp;
+                valueSt targetSt;
+
+                while (arg) {
+                    argStack[argNum++] = arg;
+                    if (arg->sibling != NULL)
+                        arg = arg->sibling;
+                    else
+                        arg = NULL;
+                }
+
+                while (argNum--) {
+                    exp1 = translateExp(argStack[argNum]);
+                    if (exp1.hasOffset) {
+                        targetSt.value = processOffset(&exp1);
+                        targetSt.isImm = 0;
+                    }
+                    else
+                        targetSt = exp1.base;
+                    addCode(13, 10000, &targetSt, &targetSt);   //ARG
+                    if (isTempVar(&targetSt))
+                        releaseTempVar(targetSt.value);
+                }
+                searchedSym = searchSymbol(node->data.id, 0, NULL);
+                targetSt.isImm = 0;
+                searchedFunc = (funcInfo *)searchedSym->info;
+                targetSt.value = (int)searchedFunc;
+                tarTemp = getTempVar();
+                addCode(14, tarTemp, &targetSt, &targetSt);
+                ret.hasOffset = 0;
+                ret.type = searchedFunc->retType;
+                ret.base.isImm = 0;
+                ret.base.value = tarTemp;
+                return ret;
+            } else {    //array
+                expTransInfo operand;
+                int i, arrSize;
+
+                exp1 = translateExp(node);
+                exp2 = translateExp(node->sibling->sibling);
+                arrSize = sizeOfType(exp1.type);
+                if (exp1.toTimes != NULL)   //times all the dimensions
+                    for (i = 0; i < exp1.toTimes->pos; i++)
+                        arrSize *= exp1.toTimes->data[i];
+                operand = execOp(5, &exp2, &operand);   //times size, store in base
+                exp2.base = exp1.offset;
+                exp2.hasOffset = 0;
+                operand = execOp(3, &exp2, &operand);   //sum of offset
+                
+                ret.base = exp1.base;
+                ret.offset = operand.base;
+                ret.hasOffset = 1;
+                ret.toTimes = removeOneDim(exp1.toTimes);
+                ret.type = exp1.type;
+                return ret;
+            }
             break;
     }
 }
@@ -160,7 +298,7 @@ void printCodes()
 
 }
 
-int processOffset(valueSt *base, valueSt *offset)
+int processOffset(expTransInfo *info)
 {
     int temp;
     valueSt st1, st2;
@@ -168,16 +306,18 @@ int processOffset(valueSt *base, valueSt *offset)
     temp = getTempVar();
     st1.isImm = 0;
     st1.value = temp;
-    addCode(7, temp, base, base); //get the address of variable pointed by base
-    addCode(3, temp, &st1, offset);
-    
-    if (!offset->isImm)
-        releaseTempVar(offset->value);
+    addCode(7, temp, &info->base, &info->base); //get the address of variable pointed by base
+    addCode(3, temp, &st1, &info->offset);
+    info->hasOffset = 0;
+
+    if (!info->offset.isImm)
+        releaseTempVar(info->offset.value);
     return temp;
 }
 
 //op: 3+ 4- 5* 6/
-expTransInfo execOpr(int op, expTransInfo *arg1, expTransInfo *arg2)
+//return value is an immediate number or temp variable
+static expTransInfo execOp(int op, expTransInfo *arg1, expTransInfo *arg2)
 {
     valueSt st1, st2;
     expTransInfo ret = {{1, 0}, {1, 0}, 0, 0, NULL};
@@ -205,7 +345,7 @@ expTransInfo execOpr(int op, expTransInfo *arg1, expTransInfo *arg2)
             }
             if (arg2->hasOffset) {   //access array or structure
                 st1.isImm = 0;
-                st1.value = processOffset(&arg2->base, &arg2->offset);
+                st1.value = processOffset(arg2);
                 addCode(8, st1.value, &st1, &st1);
             } else
                 st1 = arg2->base;
@@ -222,7 +362,7 @@ expTransInfo execOpr(int op, expTransInfo *arg1, expTransInfo *arg2)
             }
             if (arg1->hasOffset) {
                 st1.isImm = 0;
-                st1.value = processOffset(&arg1->base, &arg1->offset);
+                st1.value = processOffset(arg1);
                 addCode(8, st1.value, &st1, &st1);
             } else
                 st1 = arg2->base;
@@ -235,13 +375,13 @@ expTransInfo execOpr(int op, expTransInfo *arg1, expTransInfo *arg2)
             int i = 0;
             if (arg1->hasOffset) {
                 st1.isImm = 0;
-                st1.value = tar[i++] = processOffset(&arg1->base, &arg1->offset);
+                st1.value = tar[i++] = processOffset(arg1);
                 addCode(8, st1.value, &st1, &st1);
                 st2 = arg2->base;
             }
             if (arg2->hasOffset) {
                 st1.isImm = 0;
-                st1.value = tar[i++] = processOffset(&arg1->base, &arg1->offset);
+                st1.value = tar[i++] = processOffset(arg1);
                 addCode(8, st1.value, &st1, &st1);
                 st2 = arg1->base;
             }
