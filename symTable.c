@@ -503,6 +503,7 @@ static void parseStmt(Node *node)
                     parseStmt(node);
                     labSt.value = endLab;
                     addCode(1, 10000, &labSt, NULL);
+                    break;
                 }
                 node = node->sibling->sibling;
                 parseStmt(node);
