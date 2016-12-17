@@ -41,8 +41,16 @@ void addFunction(funcInfo *func)
 
 void addLocalVar(varInfo *var)
 {
+    char *temp;
+
     var->offset = curFunc->space;
     curFunc->space += sizeOfVar(var);
+    if (var->type > 10 || var->isArray) {
+        temp = var->name;
+        var->name = NULL;
+        addVariable(curFunc->toAlloc, var);
+        var->name = temp;
+    }
 }
 
 void addCode(int op, int target, valueSt *arg1, valueSt *arg2)
@@ -76,7 +84,8 @@ int getTempVar()
 
 void releaseTempVar(int index)
 {
-    tempVarUsed[index] = 0;
+    if (index < TEMPVARNUM)
+        tempVarUsed[index] = 0;
 }
 
 expTransInfo translateExp(Node *node)
@@ -156,21 +165,46 @@ expTransInfo translateExp(Node *node)
             } else if (!strcmp(node->sibling->type, "ASSIGNOP")) {
                 tripleCode *last = getLastCode();
                 int assignTar;
+                int assignOp = 2;
 
                 exp1 = translateExp(node);
-                if (exp1.hasOffset)
+                if (exp1.hasOffset) {
                     assignTar = processOffset(&exp1);
-                else
+                    assignOp = 9;
+                    releaseTempVar(assignTar);
+                    ret.hasOffset = 1;
+                }
+                else {
+                    ret.hasOffset = 0;
                     assignTar = exp1.base.value;
+                }
 
                 exp2 = translateExp(node->sibling->sibling);
                 if (isTempVar(&exp2.base))     //replace the temp variable with variable
                     last->target = assignTar;
-                else
-                    addCode(2, assignTar, &exp2.base, &exp2.base);
+                else {
+                    if (exp2.hasOffset) {
+                        int assignSource = processOffset(&exp2);
+
+                        if (assignOp == 2)
+                            assignOp = 8;
+                        else {
+                            int middleTemp = getTempVar();
+                            valueSt st;
+
+                            st.isImm = 0;
+                            st.value = assignSource;
+                            addCode(8, middleTemp, &st, &st);
+                            exp2.base.value = middleTemp;
+                            releaseTempVar(middleTemp);
+                        }
+                        releaseTempVar(assignSource);
+                    }
+                    addCode(assignOp, assignTar, &exp2.base, &exp2.base);
+                }
                 ret.base.value = assignTar;
                 ret.base.isImm = 0;
-                ret.hasOffset = 0;                
+                             
 
             } else {
                 int op;
@@ -209,6 +243,7 @@ expTransInfo translateExp(Node *node)
                     if (exp1.hasOffset) {
                         targetSt.value = processOffset(&exp1);
                         targetSt.isImm = 2;
+                        releaseTempVar(targetSt.value);
                     }
                     else
                         targetSt = exp1.base;
@@ -316,10 +351,14 @@ void printCodes()
             printf("FUNCTION main :\n");
         else
             printf("FUNCTION f%s :\n", prtFunc->info->name);
-        for (j = 0; j < prtFunc->info->param->pos; j++)
-            printf("PARAM v%d\n", (int)prtFunc->info->param->data[j]);
-        prtCode = prtFunc->code->next;
+        for (j = 0; j < prtFunc->paramList->pos; j++)
+            printf("PARAM v%d\n", (int)prtFunc->paramList->data[j]);
+        
+        for (j = 0; j < prtFunc->toAlloc->pos; j++)
+            printf("DEC v%d %d\n", (int)prtFunc->toAlloc->data[j], sizeOfVar(prtFunc->toAlloc->data[j]));
+        putchar('\n');
 
+        prtCode = prtFunc->code->next;
         while (prtCode != prtFunc->code) {
             switch(prtCode->op) {
                 case 1:
@@ -390,11 +429,11 @@ void printCodes()
                     break;
                 case 16:
                     printf("WRITE ");
-                    if (prtCode->arg1.base == 2)
+                    if (prtCode->arg1.isImm == 2)
                         printf("*v%d", prtCode->arg1.value);
                     else
                         printValueSt(&prtCode->arg1);
-                    
+
                     putchar('\n');
                     break;
                 default: //if
@@ -411,6 +450,9 @@ int processOffset(expTransInfo *info)
 {
     int temp;
     valueSt st1, st2;
+
+    if (info->offset.value == 0)
+        return info->base.value;
 
     temp = getTempVar();
     st1.isImm = 0;
