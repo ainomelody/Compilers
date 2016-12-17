@@ -642,35 +642,35 @@ int getLabelNum()
 int translateRelop(char *relop)
 {
     if (!strcmp(relop, ">"))
-        return 1;
+        return 10;
     else if (!strcmp(relop, "<"))
-        return 2;
+        return 20;
     else if (!strcmp(relop, ">="))
-        return 3;
+        return 30;
     else if (!strcmp(relop, "<="))
-        return 4;
+        return 40;
     else if (!strcmp(relop, "=="))
-        return 5;
+        return 50;
     else
-        return 6;
+        return 60;
 }
 
 static void printRelop(int relop)
 {
     switch(relop) {
-        case 1:
+        case 10:
             printf(" > ");
             break;
-        case 2:
+        case 20:
             printf(" < ");
             break;
-        case 3:
+        case 30:
             printf(" >= ");
             break;
-        case 4:
+        case 40:
             printf(" <= ");
             break;
-        case 5:
+        case 50:
             printf(" == ");
             break;
         default:
