@@ -8,6 +8,8 @@
 #include "tree.h"
 #include "exp.tab.h"
 
+int translateRelop(char *relop);
+
 int yycolumn = 1;
 #define YY_USER_ACTION 	{\
 	yylloc.first_line = yylloc.last_line = yylineno; \
@@ -18,7 +20,7 @@ int yycolumn = 1;
 
 %}
 OCTAL 0[0-7]+
-DECIMAL ([1-9][0-9]*)|0
+DECIMAL -?([1-9][0-9]*)|0
 HEX 0x[0-9A-Fa-f]+
 INT {OCTAL}|{DECIMAL}|{HEX}
 NUMFLOAT ([0-9]+\.[0-9]*)|(\.[0-9]+)
@@ -62,7 +64,7 @@ ID {character}[A-Za-z_0-9]*
 {SEMI} {yylval = newNode("SEMI", yylineno); return SEMI;}
 {COMMA} {yylval = newNode("COMMA", yylineno); return COMMA;}
 {ASSIGNOP} {yylval = newNode("ASSIGNOP", yylineno); return ASSIGNOP;}
-{RELOP} {yylval = newNode("RELOP", yylineno); yylval->data.id = yytext; return RELOP;}
+{RELOP} {yylval = newNode("RELOP", yylineno); yylval->data.intValue = translateRelop(yytext); return RELOP;}
 {PLUS} {yylval = newNode("PLUS", yylineno); return PLUS;}
 {MINUS} {yylval = newNode("MINUS", yylineno); return MINUS;}
 {STAR} {yylval = newNode("STAR", yylineno); return STAR;}
