@@ -62,7 +62,7 @@ ID {character}[A-Za-z_0-9]*
 {SEMI} {yylval = newNode("SEMI", yylineno); return SEMI;}
 {COMMA} {yylval = newNode("COMMA", yylineno); return COMMA;}
 {ASSIGNOP} {yylval = newNode("ASSIGNOP", yylineno); return ASSIGNOP;}
-{RELOP} {yylval = newNode("RELOP", yylineno); return RELOP;}
+{RELOP} {yylval = newNode("RELOP", yylineno); yylval->data.id = yytext; return RELOP;}
 {PLUS} {yylval = newNode("PLUS", yylineno); return PLUS;}
 {MINUS} {yylval = newNode("MINUS", yylineno); return MINUS;}
 {STAR} {yylval = newNode("STAR", yylineno); return STAR;}
