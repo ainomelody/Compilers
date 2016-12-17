@@ -417,7 +417,7 @@ static void parseStmt(Node *node)
                             releaseTempVar(arg2.value);
                         } else
                             arg2 = exp2.base;
-                        op = 11 + translateRelop(node->child->sibling->data.id);
+                        op = 11 + node->child->sibling->data.intValue;
 
                         addCode(op, startLab, &arg1, &arg2);   //if arg1 relop arg2 goto startLab
                         labSt.value = endLab;
@@ -451,7 +451,7 @@ static void parseStmt(Node *node)
                             releaseTempVar(arg2.value);
                         } else
                             arg2 = exp2.base;
-                        op = 11 + translateRelop(node->child->sibling->data.id);
+                        op = 11 + node->child->sibling->data.intValue;
                         addCode(op, trueLab, &arg1, &arg2);   //if arg1 relop arg2 goto trueLab
 
                         labSt.value = falseLab;
@@ -492,7 +492,7 @@ static void parseStmt(Node *node)
                         releaseTempVar(arg2.value);
                     } else
                         arg2 = exp2.base;
-                    op = 11 + translateRelop(node->child->sibling->data.id);
+                    op = 11 + node->child->sibling->data.intValue;
                     addCode(op, trueLab, &arg1, &arg2);   //if arg1 relop arg2 goto trueLab
 
                     node = node->sibling->sibling;
