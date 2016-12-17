@@ -38,6 +38,7 @@ void analyse(Node *tree)
     }
     if (*globalSymTable != NULL)
         checkFuncDecl(*globalSymTable);
+    printCodes();
     //clean
 }
 
