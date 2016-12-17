@@ -7,14 +7,14 @@
 
 static codeCollection allCodes;
 static funcCode *curFunc;
-int labelNum;
+static int labelNum;
 static int tempVarIndex;
 static int tempVarUsed[TEMPVARNUM];
 
-static int isTempVar(valueSt *st);
 static expTransInfo execOp(int op, expTransInfo *arg1, expTransInfo *arg2);
 static int mergeOp(int target, int op, valueSt *st);
 static void printValueSt(valueSt *st);
+static void printRelop(int relop);
 
 void initCodeCollection()
 {
@@ -60,8 +60,10 @@ void addCode(int op, int target, valueSt *arg1, valueSt *arg2)
 
     newCode->op = op;
     newCode->target = target;
-    newCode->arg1 = *arg1;
-    newCode->arg2 = *arg2;
+    if (arg1 != NULL)
+        newCode->arg1 = *arg1;
+    if (arg2 != NULL)
+        newCode->arg2 = *arg2;
 
     newCode->prev = tail;
     tail->next = newCode;
@@ -131,14 +133,14 @@ expTransInfo translateExp(Node *node)
                 valueSt funcSt;
 
                 if (!strcmp(node->data.id, "read")) {
-                    addCode(15, target, &funcSt, &funcSt);
+                    addCode(15, target, &funcSt, NULL);
                     ret.base.isImm = 0;
                     ret.base.value = target;
                     return ret;
                 }
                 searchedSym = searchSymbol(node->data.id, 0, NULL);
                 funcSt.value = (int)(searchedSym->info);
-                addCode(14, target, &funcSt, &funcSt);
+                addCode(14, target, &funcSt, NULL);
                 ret.base.isImm = 0;
                 ret.base.value = target;
                 return ret;
@@ -194,13 +196,13 @@ expTransInfo translateExp(Node *node)
 
                             st.isImm = 0;
                             st.value = assignSource;
-                            addCode(8, middleTemp, &st, &st);
+                            addCode(8, middleTemp, &st, NULL);
                             exp2.base.value = middleTemp;
                             releaseTempVar(middleTemp);
                         }
                         releaseTempVar(assignSource);
                     }
-                    addCode(assignOp, assignTar, &exp2.base, &exp2.base);
+                    addCode(assignOp, assignTar, &exp2.base, NULL);
                 }
                 ret.base.value = assignTar;
                 ret.base.isImm = 0;
@@ -247,7 +249,7 @@ expTransInfo translateExp(Node *node)
                     }
                     else
                         targetSt = exp1.base;
-                    addCode(16, 10000, &targetSt, &targetSt);
+                    addCode(16, 10000, &targetSt, NULL);
                     return ret;
                 }
 
@@ -259,7 +261,7 @@ expTransInfo translateExp(Node *node)
                     }
                     else
                         targetSt = exp1.base;
-                    addCode(13, 10000, &targetSt, &targetSt);   //ARG
+                    addCode(13, 10000, &targetSt, NULL);   //ARG
                     if (isTempVar(&targetSt))
                         releaseTempVar(targetSt.value);
                 }
@@ -268,7 +270,7 @@ expTransInfo translateExp(Node *node)
                 searchedFunc = (funcInfo *)searchedSym->info;
                 targetSt.value = (int)searchedFunc;
                 tarTemp = getTempVar();
-                addCode(14, tarTemp, &targetSt, &targetSt);
+                addCode(14, tarTemp, &targetSt, NULL);
                 ret.hasOffset = 0;
                 ret.type = searchedFunc->retType;
                 ret.base.isImm = 0;
@@ -413,7 +415,10 @@ void printCodes()
                     break;
                 case 12:
                     printf("RETURN ");
-                    printValueSt(&prtCode->arg1);
+                    if (prtCode->arg1.isImm == 2)
+                        printf("*v%d\n", prtCode->arg1.value);
+                    else
+                        printValueSt(&prtCode->arg1);
                     putchar('\n');
                     break;
                 case 13:
@@ -436,8 +441,12 @@ void printCodes()
 
                     putchar('\n');
                     break;
-                default: //if
-                    ;
+                default:
+                    printf("IF ");
+                    printValueSt(&prtCode->arg1);
+                    printRelop(prtCode->op - 11);
+                    printValueSt(&prtCode->arg2);
+                    printf(" GOTO label%d\n", prtCode->target);
 
             }
             prtCode = prtCode->next;
@@ -457,7 +466,7 @@ int processOffset(expTransInfo *info)
     temp = getTempVar();
     st1.isImm = 0;
     st1.value = temp;
-    addCode(7, temp, &info->base, &info->base); //get the address of variable pointed by base
+    addCode(7, temp, &info->base, NULL); //get the address of variable pointed by base
     addCode(3, temp, &st1, &info->offset);
     info->hasOffset = 0;
 
@@ -497,7 +506,7 @@ static expTransInfo execOp(int op, expTransInfo *arg1, expTransInfo *arg2)
             if (arg2->hasOffset) {   //access array or structure
                 st1.isImm = 0;
                 st1.value = processOffset(arg2);
-                addCode(8, st1.value, &st1, &st1);
+                addCode(8, st1.value, &st1, NULL);
             } else
                 st1 = arg2->base;
             addCode(op, arg1->base.value, &arg1->base, &st1);
@@ -514,7 +523,7 @@ static expTransInfo execOp(int op, expTransInfo *arg1, expTransInfo *arg2)
             if (arg1->hasOffset) {
                 st1.isImm = 0;
                 st1.value = processOffset(arg1);
-                addCode(8, st1.value, &st1, &st1);
+                addCode(8, st1.value, &st1, NULL);
             } else
                 st1 = arg2->base;
             addCode(op, arg2->base.value, &arg2->base, &st1);
@@ -527,13 +536,13 @@ static expTransInfo execOp(int op, expTransInfo *arg1, expTransInfo *arg2)
             if (arg1->hasOffset) {
                 st1.isImm = 0;
                 st1.value = tar[i++] = processOffset(arg1);
-                addCode(8, st1.value, &st1, &st1);
+                addCode(8, st1.value, &st1, NULL);
                 st2 = arg2->base;
             }
             if (arg2->hasOffset) {
                 st1.isImm = 0;
                 st1.value = tar[i++] = processOffset(arg1);
-                addCode(8, st1.value, &st1, &st1);
+                addCode(8, st1.value, &st1, NULL);
                 st2 = arg1->base;
             }
             
@@ -557,7 +566,7 @@ static expTransInfo execOp(int op, expTransInfo *arg1, expTransInfo *arg2)
     }
 }
 
-static int isTempVar(valueSt *st)
+int isTempVar(valueSt *st)
 {
     return !st->isImm && st->value < TEMPVARNUM;
 }
@@ -617,8 +626,54 @@ void addParam()
 
 static void printValueSt(valueSt *st)
 {
-    if (st->isImm)
+    if (st->isImm == 1)
         printf("#%d", st->value);
+    else if (!st->isImm)
+        printf("v%d", st->value);
     else
-        printf("v%d\n", st->value);
+        printf("*v%d", st->value);
+}
+
+int getLabelNum()
+{
+    return labelNum++;
+}
+
+int translateRelop(char *relop)
+{
+    if (!strcmp(relop, ">"))
+        return 1;
+    else if (!strcmp(relop, "<"))
+        return 2;
+    else if (!strcmp(relop, ">="))
+        return 3;
+    else if (!strcmp(relop, "<="))
+        return 4;
+    else if (!strcmp(relop, "=="))
+        return 5;
+    else
+        return 6;
+}
+
+static void printRelop(int relop)
+{
+    switch(relop) {
+        case 1:
+            printf(" > ");
+            break;
+        case 2:
+            printf(" < ");
+            break;
+        case 3:
+            printf(" >= ");
+            break;
+        case 4:
+            printf(" <= ");
+            break;
+        case 5:
+            printf(" == ");
+            break;
+        default:
+            printf(" != ");
+    }
 }

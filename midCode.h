@@ -15,7 +15,7 @@
 8. target := *arg1
 9. *target := arg1
 10. goto label-arg1
-11. if 
+11. if arg1 relop(op - 11) arg2 goto target
 12. return arg1    target = 10000
 13. arg arg1       target = 10000
 14. target := call arg1
@@ -56,8 +56,6 @@ typedef struct{
     arrayInfo *toTimes;
 }expTransInfo;
 
-extern int labelNum;
-
 void initCodeCollection();
 void addFunction(funcInfo *func);
 void addLocalVar(varInfo *var);
@@ -70,5 +68,8 @@ void addIOFunc();
 void printCodes();
 int processOffset(expTransInfo *info);
 void addParam();
+int getLabelNum();
+int translateRelop(char *relop);
+int isTempVar(valueSt *st);
 
 #endif

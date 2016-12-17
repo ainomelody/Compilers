@@ -19,8 +19,8 @@ static varInfo *parseDefList(Node *node);
 static varInfo *parseVarDec(Node *node);        //node->type == "VarDec"   
 static funcInfo *parseFuncDec(Node *node); 
 static void parseCompSt(Node *node, varList *args);
-static expTypeInfo parseExp(Node *node);         //return the type of exp
-static void parseStmt(Node *node);               //return the type of exp in RETURN statement
+static expTypeInfo parseExp(Node *node);
+static void parseStmt(Node *node);
 static void checkFuncDecl(symNode *node);                    //check if every declaration has a definition
 
 int hasError;
@@ -30,6 +30,7 @@ void analyse(Node *tree)
 {
     initScopeStack();
     initCodeCollection();
+    addIOFunc();
     tree = tree->child;
     while (tree->lineNum != -1) {
         parseExtDef(tree->child);
@@ -132,8 +133,6 @@ static void parseExtDef(Node *node)
 
 static int getSpecifierType(Node *node)
 {
-    /*This function reports error 16, 17*/
-
     structDefInfo *stInfo, *parent, *newSt;
     char tempName[20];
     char *name = NULL;
@@ -311,7 +310,7 @@ static void parseCompSt(Node *node, varList *args)
     varInfo *var;
 
     getInScope();
-    if (args != NULL)
+    if (args != NULL) {
         for (i = 0; i < args->pos; i++) {
             searchSymbol(args->data[i]->name, 1, &insLoc);
             insNode = malloc(sizeof(symNode));
@@ -321,6 +320,8 @@ static void parseCompSt(Node *node, varList *args)
             insNode->name = args->data[i]->name;
             addSymbol(insNode, insLoc);
         }
+        addParam();
+    }
 
     node = node->child->sibling;    //DefList
     var = parseDefList(node);
@@ -354,26 +355,154 @@ static void parseCompSt(Node *node, varList *args)
 static void parseStmt(Node *node)
 {
     expTypeInfo expType;
+    expTransInfo transRet;
+    int stmtType, needTrans;
+    valueSt labSt = {1, 0};
 
     switch (node->childNum) {
         case 1: parseCompSt(node->child, NULL); break;
-        case 2: parseExp(node->child); break;
+        case 2: parseExp(node->child); 
+                transRet = translateExp(node->child); 
+                if (isTempVar(&transRet.base))
+                    releaseTempVar(transRet.base.value);
+                break;
         case 3: if (expType = parseExp(node->child->sibling), !checkTypeConsist(expType.type, curFuncRetType) || expType.dims) {
                     printf("Error type 8 at Line %d: Type mismatched for return.\n", node->lineNum);
                     hasError = 1;
                 }
+                transRet = translateExp(node->child->sibling);
+                if (transRet.hasOffset) {
+                    valueSt arg1;
+
+                    arg1.value = processOffset(&transRet);
+                    arg1.isImm = 2;
+                    addCode(12, 10000, &arg1, NULL);
+                    releaseTempVar(arg1.value);
+                } else
+                    addCode(12, 10000, &transRet.base, NULL);
                 break;
-        case 5: node = node->child->sibling->sibling;       //Exp
+        case 5: 
+                stmtType = strcmp(node->child->type, "IF");
+                node = node->child->sibling->sibling;       //Exp
                 if (expType = parseExp(node), expType.type != 0 || expType.dims) {
                     printf("Error type 7 at Line %d: Type mismatched for conditional statement.\n", node->lineNum);
                     hasError = 1;
                 }
-                parseStmt(node->sibling->sibling);
+                needTrans = !strcmp(node->child->sibling->type, "RELOP");
+                if (needTrans) {
+                    if (stmtType) { //while
+                        int checkLab = getLabelNum();
+                        int startLab = getLabelNum();
+                        int endLab = getLabelNum();
+                        int op;
+                        expTransInfo exp1, exp2;
+                        valueSt arg1, arg2;
+
+                        labSt.value = checkLab;
+                        addCode(1, 10000, &labSt, NULL);        //checkLab:
+
+                        exp1 = translateExp(node->child);
+                        if (exp1.hasOffset) {
+                            arg1.isImm = 2;
+                            arg1.value = processOffset(&exp1);
+                            releaseTempVar(arg1.value);
+                        } else
+                            arg1 = exp1.base;
+
+                        exp2 = translateExp(node->child->sibling->sibling);
+                        if (exp2.hasOffset) {
+                            arg2.isImm = 2;
+                            arg2.value = processOffset(&exp2);
+                            releaseTempVar(arg2.value);
+                        } else
+                            arg2 = exp2.base;
+                        op = 11 + translateRelop(node->child->sibling->data.id);
+
+                        addCode(op, startLab, &arg1, &arg2);   //if arg1 relop arg2 goto startLab
+                        labSt.value = endLab;
+                        addCode(10, 10000, &labSt, NULL);       //goto endLab
+                        labSt.value = startLab;
+                        addCode(1, 10000, &labSt, NULL);        //startLab:
+                        parseStmt(node->sibling->sibling);
+                        labSt.value = checkLab;
+                        addCode(10, 10000, &labSt, NULL);       //goto checkLab
+                        labSt.value = endLab;
+                        addCode(1, 10000, &labSt, NULL);        //endLab:
+                    } else {        //if
+                        int trueLab = getLabelNum();
+                        int falseLab = getLabelNum();
+                        int op;
+                        expTransInfo exp1, exp2;
+                        valueSt arg1, arg2;
+
+                        exp1 = translateExp(node->child);
+                        if (exp1.hasOffset) {
+                            arg1.isImm = 2;
+                            arg1.value = processOffset(&exp1);
+                            releaseTempVar(arg1.value);
+                        } else
+                            arg1 = exp1.base;
+
+                        exp2 = translateExp(node->child->sibling->sibling);
+                        if (exp2.hasOffset) {
+                            arg2.isImm = 2;
+                            arg2.value = processOffset(&exp2);
+                            releaseTempVar(arg2.value);
+                        } else
+                            arg2 = exp2.base;
+                        op = 11 + translateRelop(node->child->sibling->data.id);
+                        addCode(op, trueLab, &arg1, &arg2);   //if arg1 relop arg2 goto trueLab
+
+                        labSt.value = falseLab;
+                        addCode(10, 10000, &labSt, NULL);       //goto falseLab
+                        labSt.value = trueLab;
+                        addCode(1, 10000, &labSt, NULL);        //trueLab:
+                        parseStmt(node->sibling->sibling);
+                        labSt.value = falseLab;
+                        addCode(1, 10000, &labSt, NULL);        //falseLab:
+                    }
+                } else
+                    parseStmt(node->sibling->sibling);
                 break;
         case 7: node = node->child->sibling->sibling;
                 if (expType = parseExp(node), expType.type != 0 || expType.dims) {
                     printf("Error type 7 at Line %d: Type mismatched for conditional statement.\n", node->lineNum);
                     hasError = 1;
+                }
+                if (!strcmp(node->child->sibling->type, "RELOP")) {
+                    int trueLab = getLabelNum();
+                    int endLab = getLabelNum();
+                    expTransInfo exp1, exp2;
+                    valueSt arg1, arg2;
+                    int op;
+                    
+                    exp1 = translateExp(node->child);
+                    if (exp1.hasOffset) {
+                        arg1.isImm = 2;
+                        arg1.value = processOffset(&exp1);
+                        releaseTempVar(arg1.value);
+                    } else
+                        arg1 = exp1.base;
+
+                    exp2 = translateExp(node->child->sibling->sibling);
+                    if (exp2.hasOffset) {
+                        arg2.isImm = 2;
+                        arg2.value = processOffset(&exp2);
+                        releaseTempVar(arg2.value);
+                    } else
+                        arg2 = exp2.base;
+                    op = 11 + translateRelop(node->child->sibling->data.id);
+                    addCode(op, trueLab, &arg1, &arg2);   //if arg1 relop arg2 goto trueLab
+
+                    node = node->sibling->sibling;
+                    parseStmt(node->sibling->sibling);
+                    labSt.value = endLab;
+                    addCode(10, 10000, &labSt, NULL);       //goto endLab
+                    labSt.value = trueLab;
+                    addCode(1, 10000, &labSt, NULL);        //trueLab:
+                    parseStmt(node);
+                    labSt.value = endLab;
+                    addCode(1, 10000, &labSt, NULL);
                 }
                 node = node->sibling->sibling;
                 parseStmt(node);
