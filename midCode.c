@@ -14,6 +14,7 @@ static int tempVarUsed[TEMPVARNUM];
 static int isTempVar(valueSt *st);
 static expTransInfo execOp(int op, expTransInfo *arg1, expTransInfo *arg2);
 static int mergeOp(int target, int op, valueSt *st);
+static void printValueSt(valueSt *st);
 
 void initCodeCollection()
 {
@@ -31,9 +32,11 @@ void addFunction(funcInfo *func)
     curFunc = malloc(sizeof(funcCode));
     allCodes.data[allCodes.pos++] = curFunc;
     curFunc->space = 0;
-    curFunc->code = NULL;
+    curFunc->code = malloc(sizeof(tripleCode)); //an empty head node
+    curFunc->code->prev = curFunc->code->next = curFunc->code;
     curFunc->info = func;
     curFunc->toAlloc = newVarList();
+    curFunc->paramList = newVarList();
 }
 
 void addLocalVar(varInfo *var)
@@ -45,22 +48,17 @@ void addLocalVar(varInfo *var)
 void addCode(int op, int target, valueSt *arg1, valueSt *arg2)
 {
     tripleCode *newCode = malloc(sizeof(tripleCode));
+    tripleCode *tail = curFunc->code->prev;
 
     newCode->op = op;
     newCode->target = target;
     newCode->arg1 = *arg1;
     newCode->arg2 = *arg2;
 
-    if (curFunc->code == NULL) {
-        curFunc->code = newCode;
-        newCode->prev = newCode->next = newCode;
-    } else {
-        tripleCode *tail = curFunc->code->prev;
-        newCode->prev = tail;
-        tail->next = newCode;
-        newCode->next = curFunc->code;
-        curFunc->code->prev = newCode;
-    }
+    newCode->prev = tail;
+    tail->next = newCode;
+    newCode->next = curFunc->code;
+    curFunc->code->prev = newCode;
 }
 
 tripleCode *getLastCode()
@@ -295,7 +293,102 @@ void addIOFunc()
 
 void printCodes()
 {
+    int i, j;
+    tripleCode *prtCode;
+    funcCode *prtFunc;
 
+    for (i = 0; i < allCodes.pos; i++) {
+         prtFunc = allCodes.data[i];
+
+        if (!strcmp(prtFunc->info->name, "main"))
+            printf("FUNCTION main :\n");
+        else
+            printf("FUNCTION f%s :\n", prtFunc->info->name);
+        for (j = 0; j < prtFunc->info->param->pos; j++)
+            printf("PARAM v%d\n", (int)prtFunc->info->param->data[j]);
+        prtCode = prtFunc->code->next;
+
+        while (prtCode != prtFunc->code) {
+            switch(prtCode->op) {
+                case 1:
+                    printf("LABEL label%d :\n", prtCode->arg1.value);
+                    break;
+                case 2:
+                    printf("v%d := ", prtCode->target);
+                    printValueSt(&prtCode->arg1);
+                    putchar('\n');
+                    break;
+                case 3:
+                    printf("v%d := ", prtCode->target);
+                    printValueSt(&prtCode->arg1);
+                    printf(" + ");
+                    printValueSt(&prtCode->arg2);
+                    putchar('\n');
+                    break;
+                case 4:
+                    printf("v%d := ", prtCode->target);
+                    printValueSt(&prtCode->arg1);
+                    printf(" - ");
+                    printValueSt(&prtCode->arg2);
+                    putchar('\n');
+                    break;
+                case 5:
+                    printf("v%d := ", prtCode->target);
+                    printValueSt(&prtCode->arg1);
+                    printf(" * ");
+                    printValueSt(&prtCode->arg2);
+                    putchar('\n');
+                    break;
+                case 6:
+                    printf("v%d := ", prtCode->target);
+                    printValueSt(&prtCode->arg1);
+                    printf(" / ");
+                    printValueSt(&prtCode->arg2);
+                    putchar('\n');
+                    break;
+                case 7:
+                    printf("v%d := &v%d\n", prtCode->target, prtCode->arg1.value);
+                    break;
+                case 8:
+                    printf("v%d := *v%d\n", prtCode->target, prtCode->arg1.value);
+                    break;
+                case 9:
+                    printf("*v%d := ", prtCode->target);
+                    printValueSt(&prtCode->arg1);
+                    putchar('\n');
+                    break;
+                case 10:
+                    printf("GOTO label%d\n", prtCode->arg1.value);
+                    break;
+                case 12:
+                    printf("RETURN ");
+                    printValueSt(&prtCode->arg1);
+                    putchar('\n');
+                    break;
+                case 13:
+                    printf("ARG ");
+                    printValueSt(&prtCode->arg1);
+                    putchar('\n');
+                    break;
+                case 14:
+                    printf("v%d := CALL f%s\n", prtCode->target, ((funcInfo *)prtCode->arg1.value)->name);
+                    break;
+                case 15:
+                    printf("READ v%d\n", prtCode->target)                 ;
+                    break;
+                case 16:
+                    printf("WRITE ");
+                    printValueSt(&prtCode->arg1);
+                    putchar('\n');
+                    break;
+                default: //if
+                    ;
+
+            }
+            prtCode = prtCode->next;
+        }
+        putchar('\n');
+    }
 }
 
 int processOffset(expTransInfo *info)
@@ -451,4 +544,23 @@ static int mergeOp(int target, int op, valueSt *st)
             break;
     }
     return 1;
+}
+
+void addParam()
+{
+    int i;
+    symNode *searchedSym;
+
+    for (i = 0; i < curFunc->info->param->pos; i++) {
+        searchedSym = searchSymbol(curFunc->info->param->data[i]->name, 1, NULL);
+        addVariable(curFunc->paramList, searchedSym->info);
+    }
+}
+
+static void printValueSt(valueSt *st)
+{
+    if (st->isImm)
+        printf("#%d", st->value);
+    else
+        printf("v%d\n", st->value);
 }
