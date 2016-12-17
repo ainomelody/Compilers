@@ -204,6 +204,18 @@ expTransInfo translateExp(Node *node)
                         arg = NULL;
                 }
 
+                if (!strcmp(node->data.id, "write")) {
+                    exp1 = translateExp(argStack[0]);
+                    if (exp1.hasOffset) {
+                        targetSt.value = processOffset(&exp1);
+                        targetSt.isImm = 2;
+                    }
+                    else
+                        targetSt = exp1.base;
+                    addCode(16, 10000, &targetSt, &targetSt);
+                    return ret;
+                }
+
                 while (argNum--) {
                     exp1 = translateExp(argStack[argNum]);
                     if (exp1.hasOffset) {
@@ -378,7 +390,11 @@ void printCodes()
                     break;
                 case 16:
                     printf("WRITE ");
-                    printValueSt(&prtCode->arg1);
+                    if (prtCode->arg1.base == 2)
+                        printf("*v%d", prtCode->arg1.value);
+                    else
+                        printValueSt(&prtCode->arg1);
+                    
                     putchar('\n');
                     break;
                 default: //if
