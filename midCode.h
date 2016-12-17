@@ -5,7 +5,7 @@
 #include "symBase.h"
 
 /* meaning of op:
-1. Define lable, target assigns the number of label.Labels are all named after labelx.
+1. Define lable, arg1 assigns the number of label.Labels are all named after labelx.
 2. Assignment operation. target := arg1
 3. Add operation. target := arg1 + arg2
 4. Minus operation. target := arg1 - arg2
@@ -14,13 +14,13 @@
 7. Get address. target := &arg1
 8. target := *arg1
 9. *target := arg1
-10. goto label-target
-11. if arg1 goto label target
-12. return target
-13. arg target
+10. goto label-arg1
+11. if 
+12. return arg1    target = 10000
+13. arg arg1       target = 10000
 14. target := call arg1
 15. READ target
-16. WRITE target
+16. WRITE arg1    target = 10000
 */
 
 typedef struct{
@@ -39,6 +39,7 @@ typedef struct {
     tripleCode *code;
     funcInfo *info;
     varList *toAlloc;   //array or structure needs space allocation.
+    varList *paramList; //points to the params in symbol table
     int space;  //space the local variable needs
 }funcCode;
 
@@ -67,6 +68,7 @@ void releaseTempVar(int index);
 expTransInfo translateExp(Node *node);
 void addIOFunc();
 void printCodes();
-int processOffset(valueSt *base, valueSt *offset);
+int processOffset(expTransInfo *info);
+void addParam();
 
 #endif
