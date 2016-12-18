@@ -402,10 +402,11 @@ static void parseStmt(Node *node)
 
                         if (last && last->op == 1)
                             checkLab = last->arg1.value;
-                        else
+                        else {
                             checkLab = getLabelNum();
-                        labSt.value = checkLab;
-                        addCode(1, 10000, &labSt, NULL);        //checkLab:
+                            labSt.value = checkLab;
+                            addCode(1, 10000, &labSt, NULL);        //checkLab:
+                        }
 
                         exp1 = translateExp(node->child);
                         if (exp1.hasOffset) {
