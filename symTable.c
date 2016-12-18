@@ -392,13 +392,18 @@ static void parseStmt(Node *node)
                 needTrans = !strcmp(node->child->sibling->type, "RELOP");
                 if (needTrans) {
                     if (stmtType) { //while
-                        int checkLab = getLabelNum();
+                        int checkLab;
                         int startLab = getLabelNum();
                         int endLab = getLabelNum();
                         int op;
+                        tripleCode *last = getLastCode();
                         expTransInfo exp1, exp2;
                         valueSt arg1, arg2;
 
+                        if (last && last->op == 1)
+                            checkLab = last->arg1.value;
+                        else
+                            checkLab = getLabelNum();
                         labSt.value = checkLab;
                         addCode(1, 10000, &labSt, NULL);        //checkLab:
 
