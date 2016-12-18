@@ -15,6 +15,7 @@ static expTransInfo execOp(int op, expTransInfo *arg1, expTransInfo *arg2);
 static int mergeOp(int target, int op, valueSt *st);
 static void printValueSt(valueSt *st);
 static void printRelop(int relop);
+static int isParam(varList *paramList, varInfo *param);
 
 void initCodeCollection()
 {
@@ -109,8 +110,14 @@ expTransInfo translateExp(Node *node)
                 ret.base.isImm = 0;
                 searchedSym = searchSymbol(node->data.id, 0, NULL);
                 searchedVar = (varInfo *)searchedSym->info;
-                ret.base.value = (int)searchedVar;
-                ret.hasOffset = 0;
+                if (isParam(curFunc->paramList, searchedVar)) {
+                    ret.hasOffset = 1;
+                    ret.offset.isImm = 0;
+                    ret.offset.value = (int)searchedVar;
+                } else {
+                    ret.base.value = (int)searchedVar;
+                    ret.hasOffset = 0;
+                }
                 ret.toTimes = copyArrInfo(searchedVar->arrInfo);
                 if (ret.hasOffset)
                     ret.toTimes = removeOneDim(ret.toTimes);
@@ -474,6 +481,8 @@ int processOffset(expTransInfo *info)
 
     if (info->offset.value == 0)
         return info->base.value;
+    if (info->base.isImm == 1)
+        return info->offset.value;
 
     temp = getTempVar();
     st1.isImm = 0;
@@ -688,4 +697,15 @@ static void printRelop(int relop)
         default:
             printf(" != ");
     }
+}
+
+static int isParam(varList *paramList, varInfo *param)
+{
+    int i;
+
+    for (i = 0; i < paramList->pos; i++)
+        if (paramList->data[i] == param)
+            return 1;
+
+    return 0;
 }
