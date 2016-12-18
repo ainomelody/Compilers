@@ -263,9 +263,15 @@ expTransInfo translateExp(Node *node)
                     exp1 = translateExp(argStack[argNum]);
                     if (exp1.hasOffset) {
                         targetSt.value = processOffset(&exp1);
-                        targetSt.isImm = 0;
-                    }
-                    else
+                        targetSt.isImm = 2;
+                        releaseTempVar(targetSt.value);
+                    } else if (!exp1.base.isImm && exp1.base.value > 1000){
+                        varInfo *var = (varInfo *)exp1.base.value;
+
+                        if (var->isArray || var->type > 10)
+                            targetSt.isImm = 3;
+                        targetSt.value = exp1.base.value;
+                    } else
                         targetSt = exp1.base;
                     addCode(13, 10000, &targetSt, NULL);   //ARG
                     if (isTempVar(&targetSt))
@@ -636,8 +642,10 @@ static void printValueSt(valueSt *st)
         printf("#%d", st->value);
     else if (!st->isImm)
         printf("v%d", st->value);
-    else
+    else if (st->isImm == 2)
         printf("*v%d", st->value);
+    else
+        printf("&v%d", st->value);
 }
 
 int getLabelNum()
