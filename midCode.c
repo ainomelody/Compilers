@@ -179,10 +179,12 @@ expTransInfo translateExp(Node *node)
                     assignTar = processOffset(&exp1);
                     assignOp = 9;
                     releaseTempVar(assignTar);
+					ret.base.isImm = 2;
                     ret.hasOffset = 1;
                 }
                 else {
                     ret.hasOffset = 0;
+					ret.base.isImm = 0;
                     assignTar = exp1.base.value;
                 }
 
@@ -211,9 +213,7 @@ expTransInfo translateExp(Node *node)
                     addCode(assignOp, assignTar, &exp2.base, NULL);
                 }
                 ret.base.value = assignTar;
-                ret.base.isImm = 0;
-                             
-
+				return ret;
             } else {
                 int op;
 
@@ -546,27 +546,25 @@ static expTransInfo execOp(int op, expTransInfo *arg1, expTransInfo *arg2)
             int tar[2];
             int i = 0;
             if (arg1->hasOffset) {
-                st1.isImm = 0;
-                st1.value = tar[i++] = processOffset(arg1);
-                addCode(8, st1.value, &st1, NULL);
-                st2 = arg2->base;
-            }
-            if (arg2->hasOffset) {
-                st1.isImm = 0;
-                st1.value = tar[i++] = processOffset(arg1);
-                addCode(8, st1.value, &st1, NULL);
-                st2 = arg1->base;
-            }
+                st1.isImm = 2;
+                st1.value = processOffset(arg1);
+				if (isTempVar(&st1))
+					tar[i++] = st1.value;
+			} else
+				st1 = arg1->base;
+
+			if (arg2->hasOffset) {
+				st2.isImm = 2;
+				st2.value = tar[i++] = processOffset(arg2);
+			} else
+				st2 = arg2->base;
             
             if (!i) {
                 tar[0] = getTempVar();
-                addCode(op, tar[0], &arg1->base, &arg2->base);
+                addCode(op, tar[0], &st1, &st2);
             } else if (i == 1) {
                 addCode(op, tar[0], &st1, &st2);
             } else {
-                st1.isImm = st2.isImm = 0;
-                st1.value = tar[0];
-                st2.value = tar[1];
                 addCode(op, tar[0], &st1, &st2);
                 releaseTempVar(tar[1]);
             }
@@ -580,7 +578,7 @@ static expTransInfo execOp(int op, expTransInfo *arg1, expTransInfo *arg2)
 
 int isTempVar(valueSt *st)
 {
-    return !st->isImm && st->value < TEMPVARNUM;
+    return (st->isImm != 1) && st->value < TEMPVARNUM;
 }
 
 static int mergeOp(int target, int op, valueSt *st)
