@@ -43,6 +43,7 @@ void addFunction(funcInfo *func)
 void addLocalVar(varInfo *var)
 {
     char *temp;
+    expTransInfo init;
 
     var->offset = curFunc->space;
     curFunc->space += sizeOfVar(var);
@@ -51,6 +52,15 @@ void addLocalVar(varInfo *var)
         var->name = NULL;
         addVariable(curFunc->toAlloc, var);
         var->name = temp;
+    } else if (var->initExp != NULL) {
+        init = translateExp(var->initExp);
+        if (init.hasOffset) {
+            valueSt addr;
+            addr.isImm = 0;
+            addr.value = processOffset(&init);
+            addCode(8, (int)var, &addr, NULL);
+        } else
+            addCode(2, (int)var, &init.base, NULL);
     }
 }
 
