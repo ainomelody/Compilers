@@ -73,17 +73,17 @@ void addCode(int op, int target, valueSt *arg1, valueSt *arg2)
 
 tripleCode *getLastCode()
 {
-	if (curFunc->code->prev == curFunc->code)
-		return NULL;
-	else
-		return curFunc->code->prev;
+    if (curFunc->code->prev == curFunc->code)
+        return NULL;
+    else
+        return curFunc->code->prev;
 }
 
 int getTempVar()
 {
     do
-		tempVarIndex = (tempVarIndex + 1) % TEMPVARNUM;
-	while (tempVarUsed[tempVarIndex]);
+        tempVarIndex = (tempVarIndex + 1) % TEMPVARNUM;
+    while (tempVarUsed[tempVarIndex]);
     tempVarUsed[tempVarIndex] = 1;
     return tempVarIndex;
 }
@@ -169,7 +169,7 @@ expTransInfo translateExp(Node *node)
                 }
                 return ret;
             } else if (!strcmp(node->sibling->type, "ASSIGNOP")) {
-				tripleCode *last;
+                tripleCode *last;
                 int assignTar;
                 int assignOp = 2;
 
@@ -186,7 +186,7 @@ expTransInfo translateExp(Node *node)
                 }
 
                 exp2 = translateExp(node->sibling->sibling);
-				last = getLastCode();
+                last = getLastCode();
                 if (isTempVar(&exp2.base))     //replace the temp variable with variable
                     last->target = assignTar;
                 else {
