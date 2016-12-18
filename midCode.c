@@ -114,6 +114,7 @@ expTransInfo translateExp(Node *node)
                     ret.hasOffset = 1;
                     ret.offset.isImm = 0;
                     ret.offset.value = (int)searchedVar;
+                    ret.base.isImm = 1;
                 } else {
                     ret.base.value = (int)searchedVar;
                     ret.hasOffset = 0;
@@ -156,24 +157,37 @@ expTransInfo translateExp(Node *node)
                 ret.base.value = target;
                 return ret;
             } else if (!strcmp(node->sibling->type, "DOT")) {
-                valueSt offsetSt;
-
                 exp1 = translateExp(node);
                 searchedVar = searchRegion((structDefInfo *)exp1.type, node->sibling->sibling->data.id);
                 ret.type = searchedVar->type;
                 ret.hasOffset = 1;
                 ret.toTimes = copyArrInfo(searchedVar->arrInfo);
                 ret.toTimes = removeOneDim(ret.toTimes);
-                ret.base = exp1.base;
-                if (!exp1.hasOffset || exp1.offset.isImm) {
-                    exp1.hasOffset = 1;
-                    ret.offset.value = exp1.offset.value + searchedVar->offset;
+                if (exp1.base.isImm == 1) {
+                    expTransInfo offsetPlus, offsetRet;
+
+                    offsetPlus.base.isImm = 1;
+                    offsetPlus.base.value = searchedVar->offset;
+                    offsetPlus.hasOffset = 0;
+                    exp1.base = exp1.offset;
+                    exp1.hasOffset = 0;
+                    offsetRet = execOp(3, &exp1, &offsetPlus);
+                    ret.offset = offsetRet.base;
+                    ret.base.isImm = 1;
                 } else {
-                    offsetSt.isImm = 1;
-                    offsetSt.value = searchedVar->offset;
-                    addCode(3, exp1.offset.value, &exp1.offset, &offsetSt);
-                    ret.offset.isImm = 0;
-                    ret.offset.value = exp1.offset.value;
+                    ret.base = exp1.base;
+                    if (!exp1.hasOffset || exp1.offset.isImm) {
+                        exp1.hasOffset = 1;
+                        ret.offset.value = exp1.offset.value + searchedVar->offset;
+                    } else {
+                        valueSt offsetSt;
+                        
+                        offsetSt.isImm = 1;
+                        offsetSt.value = searchedVar->offset;
+                        addCode(3, exp1.offset.value, &exp1.offset, &offsetSt);
+                        ret.offset.isImm = 0;
+                        ret.offset.value = exp1.offset.value;
+                    }
                 }
                 return ret;
             } else if (!strcmp(node->sibling->type, "ASSIGNOP")) {
@@ -503,7 +517,7 @@ static expTransInfo execOp(int op, expTransInfo *arg1, expTransInfo *arg2)
     valueSt st1, st2;
     expTransInfo ret = {{1, 0}, {1, 0}, 0, 0, NULL};
 
-    if (arg1->base.isImm && arg2->base.isImm) {
+    if (arg1->base.isImm && arg2->base.isImm && !arg1->hasOffset && !arg2->hasOffset) {
         switch(op) {
             case 3:
                 ret.base.value = arg1->base.value + arg2->base.value;
