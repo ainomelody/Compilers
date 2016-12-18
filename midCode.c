@@ -317,11 +317,11 @@ expTransInfo translateExp(Node *node)
                 exp2 = translateExp(node->sibling->sibling);
                 arrSize = sizeOfType(exp1.type);
                 ret.hasOffset = 1;
-                ret.toTimes = removeOneDim(exp1.toTimes);
                 ret.type = exp1.type;
                 if (exp1.toTimes != NULL)   //times all the dimensions
                     for (i = 0; i < exp1.toTimes->pos; i++)
                         arrSize *= exp1.toTimes->data[i];
+                ret.toTimes = removeOneDim(exp1.toTimes);
                 operand.base.isImm = 1;
                 operand.base.value = arrSize;
                 operand.hasOffset = 0;
