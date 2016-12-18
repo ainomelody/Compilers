@@ -73,13 +73,17 @@ void addCode(int op, int target, valueSt *arg1, valueSt *arg2)
 
 tripleCode *getLastCode()
 {
-    return curFunc->code->prev;
+	if (curFunc->code->prev == curFunc->code)
+		return NULL;
+	else
+		return curFunc->code->prev;
 }
 
 int getTempVar()
 {
-    while (tempVarUsed[tempVarIndex])
-        tempVarIndex = (tempVarIndex + 1) % TEMPVARNUM;
+    do
+		tempVarIndex = (tempVarIndex + 1) % TEMPVARNUM;
+	while (tempVarUsed[tempVarIndex]);
     tempVarUsed[tempVarIndex] = 1;
     return tempVarIndex;
 }
@@ -165,7 +169,7 @@ expTransInfo translateExp(Node *node)
                 }
                 return ret;
             } else if (!strcmp(node->sibling->type, "ASSIGNOP")) {
-                tripleCode *last = getLastCode();
+				tripleCode *last;
                 int assignTar;
                 int assignOp = 2;
 
@@ -182,6 +186,7 @@ expTransInfo translateExp(Node *node)
                 }
 
                 exp2 = translateExp(node->sibling->sibling);
+				last = getLastCode();
                 if (isTempVar(&exp2.base))     //replace the temp variable with variable
                     last->target = assignTar;
                 else {
@@ -525,7 +530,7 @@ static expTransInfo execOp(int op, expTransInfo *arg1, expTransInfo *arg2)
                 st1.value = processOffset(arg1);
                 addCode(8, st1.value, &st1, NULL);
             } else
-                st1 = arg2->base;
+                st1 = arg1->base;
             addCode(op, arg2->base.value, &arg2->base, &st1);
             ret.base = arg2->base;
             return ret;
