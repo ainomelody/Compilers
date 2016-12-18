@@ -305,6 +305,9 @@ arrayInfo *removeOneDim(arrayInfo *info)
 {
     int i;
 
+    if (info == NULL)
+        return NULL;
+    
     if (info->pos == 1) {
         freeArrayInfo(&info);
         return NULL;
