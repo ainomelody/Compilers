@@ -513,7 +513,7 @@ int processOffset(expTransInfo *info)
     int temp;
     valueSt st1, st2;
 
-    if (info->offset.value == 0)
+    if (!info->offset.value && info->offset.isImm == 1)
         return info->base.value;
     if (info->base.isImm == 1)
         return info->offset.value;
