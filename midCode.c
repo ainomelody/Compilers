@@ -221,7 +221,7 @@ expTransInfo translateExp(Node *node)
 
                 exp2 = translateExp(node->sibling->sibling);
                 last = getLastCode();
-                if (isTempVar(&exp2.base))     //replace the temp variable with variable
+                if (isTempVar(&exp2.base) && assignOp != 9)     //replace the temp variable with variable
                     last->target = assignTar;
                 else {
                     if (exp2.hasOffset) {
