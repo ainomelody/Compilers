@@ -71,10 +71,15 @@ void addCode(int op, int target, valueSt *arg1, valueSt *arg2)
 
     newCode->op = op;
     newCode->target = target;
-    if (arg1 != NULL)
-        newCode->arg1 = *arg1;
-    if (arg2 != NULL)
-        newCode->arg2 = *arg2;
+    if (op > 2 && op < 6 && arg1->isImm) {
+        newCode->arg1 = *arg2;
+        newCode->arg2 = *arg1;
+    } else {
+        if (arg1 != NULL)
+            newCode->arg1 = *arg1;
+        if (arg2 != NULL)
+            newCode->arg2 = *arg2;
+    }
 
     newCode->prev = tail;
     tail->next = newCode;
