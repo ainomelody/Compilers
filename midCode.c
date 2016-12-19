@@ -5,7 +5,7 @@
 
 #define TEMPVARNUM 10
 
-static codeCollection allCodes;
+codeCollection allCodes;
 static funcCode *curFunc;
 static int labelNum;
 static int tempVarIndex;

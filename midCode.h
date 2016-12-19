@@ -56,6 +56,8 @@ typedef struct{
     arrayInfo *toTimes;
 }expTransInfo;
 
+extern codeCollection allCodes;
+
 void initCodeCollection();
 void addFunction(funcInfo *func);
 void addLocalVar(varInfo *var);
