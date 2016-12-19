@@ -666,20 +666,20 @@ static int mergeOp(int target, int op, valueSt *st)
         return 0;
 
     switch(last->op) {
+        case 3:
+            if (op == 3)
+                mergeTar->value += st->value;
+            else
+                mergeTar->value -= st->value;
+            break;
+        case 4:
+            if (op == 3)
+                mergeTar->value -= st->value;
+            else
+                mergeTar->value += st->value;
+            break;
         case 5:
-            if (op == 5)
-                mergeTar->value += st->value;
-            else
-                mergeTar->value -= st->value;
-            break;
         case 6:
-            if (op == 5)
-                mergeTar->value -= st->value;
-            else
-                mergeTar->value += st->value;
-            break;
-        case 7:
-        case 8:
             mergeTar->value *= st->value;
             break;
     }
