@@ -71,7 +71,6 @@ void addCode(int op, int target, valueSt *arg1, valueSt *arg2)
 
     newCode->op = op;
     newCode->target = target;
-<<<<<<< HEAD
     if ((op == 3 || op == 5) && arg1->isImm) {
         newCode->arg1 = *arg2;
         newCode->arg2 = *arg1;
@@ -81,12 +80,6 @@ void addCode(int op, int target, valueSt *arg1, valueSt *arg2)
         if (arg2 != NULL)
             newCode->arg2 = *arg2;
     }
-=======
-    if (arg1 != NULL)
-        newCode->arg1 = *arg1;
-    if (arg2 != NULL)
-        newCode->arg2 = *arg2;
->>>>>>> parent of 9cac77a... change the order of argument of +-*, place the immediate number at arg2
 
     newCode->prev = tail;
     tail->next = newCode;
