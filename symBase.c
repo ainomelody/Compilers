@@ -303,8 +303,6 @@ arrayInfo *copyArrInfo(arrayInfo *toCopy)
 
 arrayInfo *removeOneDim(arrayInfo *info)
 {
-    int i;
-
     if (info == NULL)
         return NULL;
     

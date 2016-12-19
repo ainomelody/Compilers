@@ -530,7 +530,7 @@ void printCodes()
 int processOffset(expTransInfo *info)
 {
     int temp;
-    valueSt st1, st2;
+    valueSt st1;
 
     if (!info->offset.value && info->offset.isImm == 1)
         return info->base.value;
