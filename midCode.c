@@ -120,7 +120,7 @@ expTransInfo translateExp(Node *node)
                 ret.base.isImm = 0;
                 searchedSym = searchSymbol(node->data.id, 0, NULL);
                 searchedVar = (varInfo *)searchedSym->info;
-                if (isParam(curFunc->paramList, searchedVar)) {
+                if (isParam(curFunc->paramList, searchedVar) && (searchedVar->type > 10 || searchedVar->isArray)) {
                     ret.hasOffset = 1;
                     ret.offset.isImm = 0;
                     ret.offset.value = (int)searchedVar;
@@ -300,6 +300,8 @@ expTransInfo translateExp(Node *node)
 
                         if (var->isArray || var->type > 10)
                             targetSt.isImm = 3;
+                        else 
+                            targetSt.isImm = 0;
                         targetSt.value = exp1.base.value;
                     } else
                         targetSt = exp1.base;
