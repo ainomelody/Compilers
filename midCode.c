@@ -763,3 +763,23 @@ static int isParam(varList *paramList, varInfo *param)
 
     return 0;
 }
+
+int hasEffect(Node *node)
+{
+    int childNum = node->childNum;
+
+    node = node->child;
+    switch(childNum) {
+        case 1:
+            return 0;
+        case 2:
+            return hasEffect(node->sibling);
+        case 3:
+            if (!strcmp(node->sibling->type, "ASSIGNOP"))
+                return 1;
+            else
+                return hasEffect(node) || hasEffect(node->sibling->sibling);
+        case 4:
+            return (!strcmp(node->type, "ID"));
+    }
+}

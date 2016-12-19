@@ -71,5 +71,6 @@ void addParam();
 int getLabelNum();
 int translateRelop(char *relop);
 int isTempVar(valueSt *st);
+int hasEffect(Node *node);
 
 #endif

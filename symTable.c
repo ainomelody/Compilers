@@ -363,6 +363,8 @@ static void parseStmt(Node *node)
     switch (node->childNum) {
         case 1: parseCompSt(node->child, NULL); break;
         case 2: parseExp(node->child); 
+                if (!hasEffect(node->child))
+                    break;
                 transRet = translateExp(node->child); 
                 if (isTempVar(&transRet.base))
                     releaseTempVar(transRet.base.value);
