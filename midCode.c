@@ -334,20 +334,37 @@ expTransInfo translateExp(Node *node)
                 operand.base.isImm = 1;
                 operand.base.value = arrSize;
                 operand.hasOffset = 0;
-                operand = execOp(5, &exp2, &operand);   //times size, store in base
+                if (exp2.base.isImm == 1 && !exp2.base.value)
+                    operand.base.value = 0;
+                else
+                    operand = execOp(5, &exp2, &operand);   //times size, store in base
 
                 if (exp1.base.isImm) {
                     exp1.base = exp1.offset;
                     exp1.hasOffset = 0;
-                    operand = execOp(3, &operand, &exp1);
                     ret.base.isImm = 1;
-                    ret.base.value = operand.base.value;
+
+                    if (operand.base.isImm == 1 && !operand.base.value)
+                        ret.offset = exp1.offset;
+                    else if (exp1.offset.isImm == 1 && !exp1.offset.value)
+                        ret.offset = operand.base;
+                    else {
+                        operand = execOp(3, &operand, &exp1);
+                        ret.offset = operand.base;
+                    }
                 } else {
                     exp2.base = exp1.offset;
                     exp2.hasOffset = 0;
-                    operand = execOp(3, &exp2, &operand);   //sum of offset
                     ret.base = exp1.base;
-                    ret.offset = operand.base;
+
+                    if (operand.base.isImm == 1 && !operand.base.value)
+                        ret.offset = exp1.offset;
+                    else if (exp1.offset.isImm == 1 && !exp1.offset.value)
+                        ret.offset = operand.base;
+                    else {
+                        operand = execOp(3, &exp2, &operand);   //sum of offset
+                        ret.offset = operand.base;
+                    }
                 }
                 return ret;
             }
