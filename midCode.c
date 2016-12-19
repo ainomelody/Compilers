@@ -130,8 +130,7 @@ expTransInfo translateExp(Node *node)
                     ret.hasOffset = 0;
                 }
                 ret.toTimes = copyArrInfo(searchedVar->arrInfo);
-                if (ret.hasOffset)
-                    ret.toTimes = removeOneDim(ret.toTimes);
+                ret.toTimes = removeOneDim(ret.toTimes);
                 ret.type = searchedVar->type;
                 return ret;
             } else {    //int
@@ -565,6 +564,7 @@ static expTransInfo execOp(int op, expTransInfo *arg1, expTransInfo *arg2)
                 addCode(8, st1.value, &st1, NULL);
             } else
                 st1 = arg2->base;
+
             addCode(op, arg1->base.value, &arg1->base, &st1);
             if (isTempVar(&arg2->base))
                 releaseTempVar(arg2->base.value);
