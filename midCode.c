@@ -32,7 +32,7 @@ void addFunction(funcInfo *func)
     }
     curFunc = malloc(sizeof(funcCode));
     allCodes.data[allCodes.pos++] = curFunc;
-    curFunc->space = 0;
+    curFunc->paramSpace = curFunc->space = 0;
     curFunc->code = malloc(sizeof(tripleCode)); //an empty head node
     curFunc->code->prev = curFunc->code->next = curFunc->code;
     curFunc->info = func;
@@ -492,10 +492,7 @@ void printCodes()
                     break;
                 case 12:
                     printf("RETURN ");
-                    if (prtCode->arg1.isImm == 2)
-                        printf("*v%d\n", prtCode->arg1.value);
-                    else
-                        printValueSt(&prtCode->arg1);
+                    printValueSt(&prtCode->arg1);
                     putchar('\n');
                     break;
                 case 13:
@@ -695,9 +692,13 @@ void addParam()
 {
     int i;
     symNode *searchedSym;
+    varInfo *param;
 
     for (i = 0; i < curFunc->info->param->pos; i++) {
         searchedSym = searchSymbol(curFunc->info->param->data[i]->name, 1, NULL);
+        param = (varInfo *)searchedSym->info;
+        param->offset = curFunc->paramSpace;
+        curFunc->paramSpace += sizeOfVar(param);
         addVariable(curFunc->paramList, searchedSym->info);
     }
 }
