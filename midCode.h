@@ -41,6 +41,7 @@ typedef struct {
     varList *toAlloc;   //array or structure needs space allocation.
     varList *paramList; //points to the params in symbol table
     int space;  //space the local variable needs
+    int paramSpace;
 }funcCode;
 
 typedef struct{
