@@ -71,7 +71,7 @@ void addCode(int op, int target, valueSt *arg1, valueSt *arg2)
 
     newCode->op = op;
     newCode->target = target;
-    if ((op == 3 || op == 5) && arg1->isImm) {
+    if ((op == 3 || op == 5) && arg1->isImm == 1) {
         newCode->arg1 = *arg2;
         newCode->arg2 = *arg1;
     } else {
