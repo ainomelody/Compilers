@@ -210,7 +210,7 @@ expTransInfo translateExp(Node *node)
                 int assignOp = 2;
 
                 exp1 = translateExp(node);
-                if (exp1.hasOffset) {
+                if (exp1.hasOffset && (exp1.offset.isImm != 1 || exp1.offset.value)) {
                     assignTar = processOffset(&exp1);
                     assignOp = 9;
                     releaseTempVar(assignTar);
@@ -228,7 +228,7 @@ expTransInfo translateExp(Node *node)
                 if (isTempVar(&exp2.base) && assignOp != 9)     //replace the temp variable with variable
                     last->target = assignTar;
                 else {
-                    if (exp2.hasOffset) {
+                    if (exp2.hasOffset && (exp2.offset.isImm != 1 || exp2.offset.value)) {
                         int assignSource = processOffset(&exp2);
 
                         if (assignOp == 2)
