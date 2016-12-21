@@ -283,7 +283,7 @@ expTransInfo translateExp(Node *node)
 
                 if (!strcmp(node->data.id, "write")) {
                     exp1 = translateExp(argStack[0]);
-                    if (exp1.hasOffset) {
+                    if (exp1.hasOffset && (exp1.offset.isImm != 1 || exp1.offset.value)) {
                         targetSt.value = processOffset(&exp1);
                         targetSt.isImm = 2;
                         releaseTempVar(targetSt.value);
