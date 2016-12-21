@@ -374,7 +374,7 @@ static void parseStmt(Node *node)
                     hasError = 1;
                 }
                 transRet = translateExp(node->child->sibling);
-                if (transRet.hasOffset) {
+                if (transRet.hasOffset && (transRet.offset.isImm != 1 || transRet.offset.value)) {
                     valueSt arg1;
 
                     arg1.value = processOffset(&transRet);
