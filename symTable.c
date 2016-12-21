@@ -1,9 +1,12 @@
 #include "symTable.h"
 #include "symBase.h"
 #include "midCode.h"
+#include "targetCode.h"
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
+
+#define EXP4
 
 typedef struct{
     int type;
@@ -38,7 +41,11 @@ void analyse(Node *tree)
     }
     if (*globalSymTable != NULL)
         checkFuncDecl(*globalSymTable);
+#ifdef EXP4
+    printTargetCode();
+#else
     printCodes();
+#endif
     //clean
 }
 
