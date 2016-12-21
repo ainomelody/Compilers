@@ -42,7 +42,7 @@ void printTargetCode()
                         int sarg = getFreeSArg();
 
                         printf("li $s%d, %d\n", sarg, prtCode->arg1.value);
-                        printf("sw $s%d, %d($sp)\n", sarg, getOffsetOfVar((varInfo *)prtCode->arg1.value));
+                        printf("sw $s%d, %d($sp)\n", sarg, getOffsetOfVar((varInfo *)prtCode->target));
                     } else if (prtCode->target < 10) {
                         printf("move $t%d, ", prtCode->target);
                         printValueSt(&prtCode->arg1);
@@ -50,7 +50,7 @@ void printTargetCode()
                     } else {
                         printf("sw ");
                         printValueSt(&prtCode->arg1);
-                        printf(", %d($sp)\n", getOffsetOfVar((varInfo *)prtCode->arg1.value));
+                        printf(", %d($sp)\n", getOffsetOfVar((varInfo *)prtCode->target));
                     }
                     break;
                 case 3:
