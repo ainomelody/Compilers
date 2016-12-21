@@ -217,9 +217,6 @@ void printTargetCode()
                         printf("sw $v0, %d($sp)\n", getOffsetOfVar((varInfo *)prtCode->target));
                     break;
                 case 16:
-                    printf("sub $sp, $sp, 4\n");
-                    printf("sw $ra, 0($sp)\n");
-                    paramSize = 4;
                     if (prtCode->arg1.isImm == 0) {
                         if (prtCode->arg1.value < 10)
                             printf("move $a0, $t%d\n", prtCode->arg1.value);
@@ -229,6 +226,9 @@ void printTargetCode()
                         printf("li $a0, %d\n", prtCode->arg1.value);
                     else
                         printf("lw $a0, 0($t%d)\n", prtCode->arg1.value);
+                    printf("sub $sp, $sp, 4\n");
+                    printf("sw $ra, 0($sp)\n");
+                    paramSize = 4;
                     printf("jal write\n");
                     printf("lw $ra, 0($sp)\n");
                     printf("add $sp, $sp, 4\n");
