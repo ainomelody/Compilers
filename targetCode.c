@@ -357,7 +357,7 @@ static int getOffsetOfVar(varInfo *var)
 {
     int offset;
 
-    offset = var->offset + paramSize;
+    offset = var->offset;
     if (isParam(prtFunc->paramList, var))       //param of function
         offset += prtFunc->space;
     return offset;
