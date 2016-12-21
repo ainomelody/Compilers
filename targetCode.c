@@ -174,6 +174,8 @@ void printTargetCode()
                     printf("jr $ra\n");
                     break;
                 case 13:
+                    if (!paramSize)
+                        printf("sw $ra, -4($sp)\n");
                     processValueSt(&prtCode->arg1);
                     if (prtCode->arg1.isImm == 1) {
                         midTarget = getFreeSArg();
@@ -183,17 +185,16 @@ void printTargetCode()
                     }
                     printf("sw ");
                     printValueSt(&prtCode->arg1);
-                    printf(", %d($sp)\n", -paramSize - 4);
+                    printf(", %d($sp)\n", -paramSize - 8);
                     paramSize += 4;
                     break;
                 case 14:
-                    printf("move $a3, $ra\n");
-                    if (paramSize)
-                        printf("sub $sp, $sp, %d\n", paramSize);
+                    if (!paramSize)
+                        printf("sw $ra, -4($sp)\n");
+                    printf("sub $sp, $sp, %d\n", 4 + paramSize);
                     printf("jal f%s\n", ((funcInfo *)(prtCode->arg1.value))->name);
-                    if (paramSize)
-                        printf("add $sp, $sp, %d\n", paramSize);
-                    printf("move $ra, $a3\n");
+                    printf("add $sp, $sp, %d\n", paramSize + 4);
+                    printf("lw $ra, -4($sp)\n");
                     paramSize = 0;
                     if (prtCode->target < 10)
                         printf("move $t%d, $v0\n", prtCode->target);
@@ -201,16 +202,19 @@ void printTargetCode()
                         printf("sw $v0, %d($sp)\n", getOffsetOfVar((varInfo *)prtCode->target));
                     break;
                 case 15:
-                    printf("move $a3, $ra\n");
+                    printf("sub $sp, $sp, 4\n");
+                    printf("sw $ra, 0($sp)\n");
                     printf("jal read\n");
-                    printf("move $ra, $a3\n");
+                    printf("lw $ra, 0($sp)\n");
+                    printf("add $sp, $sp, 4\n");
                     if (prtCode->target < 10)
                         printf("move $t%d, $v0\n", prtCode->target);
                     else
                         printf("sw $v0, %d($sp)\n", getOffsetOfVar((varInfo *)prtCode->target));
                     break;
                 case 16:
-                    printf("move $a3, $ra\n");
+                    printf("sub $sp, $sp, 4\n");
+                    printf("sw $ra, 0($sp)\n");
                     if (prtCode->arg1.isImm == 0) {
                         if (prtCode->arg1.value < 10)
                             printf("move $a0, $t%d\n", prtCode->arg1.value);
@@ -221,7 +225,8 @@ void printTargetCode()
                     else
                         printf("lw $a0, 0($t%d)\n", prtCode->arg1.value);
                     printf("jal write\n");
-                    printf("move $ra, $a3\n");
+                    printf("lw $ra, 0($sp)\n");
+                    printf("add $sp, $sp, 4\n");
                     break;
                 default:
                     processValueSt(&prtCode->arg1);
