@@ -318,7 +318,7 @@ static void processValueSt(valueSt *st)
 
     sarg = getFreeSArg();
     if (st->isImm == 2 && isTempVar(st)) {
-        printf("lw $%d, 0($t%d)\n", sarg, st->value);
+        printf("lw $s%d, 0($t%d)\n", sarg, st->value);
         st->isImm = 6;
         st->value = sarg;
         return;
