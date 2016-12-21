@@ -15,7 +15,6 @@ static expTransInfo execOp(int op, expTransInfo *arg1, expTransInfo *arg2);
 static int mergeOp(int target, int op, valueSt *st);
 static void printValueSt(valueSt *st);
 static void printRelop(int relop);
-static int isParam(varList *paramList, varInfo *param);
 
 void initCodeCollection()
 {
@@ -759,7 +758,7 @@ static void printRelop(int relop)
     }
 }
 
-static int isParam(varList *paramList, varInfo *param)
+int isParam(varList *paramList, varInfo *param)
 {
     int i;
 
