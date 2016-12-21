@@ -10,12 +10,12 @@ static int getOffsetOfVar(varInfo *var);
 static void printValueSt(valueSt *st);
 
 static funcCode *prtFunc;
+int paramSize;          //sizeof $ra included
 
 void printTargetCode()
 {
     int i, j;
     tripleCode *prtCode;
-    int paramSize;
     int midTarget;
 
     printHead();
@@ -174,8 +174,10 @@ void printTargetCode()
                     printf("jr $ra\n");
                     break;
                 case 13:
-                    if (!paramSize)
+                    if (!paramSize) {
                         printf("sw $ra, -4($sp)\n");
+                        paramSize += 4;
+                    }
                     processValueSt(&prtCode->arg1);
                     if (prtCode->arg1.isImm == 1) {
                         midTarget = getFreeSArg();
@@ -185,15 +187,17 @@ void printTargetCode()
                     }
                     printf("sw ");
                     printValueSt(&prtCode->arg1);
-                    printf(", %d($sp)\n", -paramSize - 8);
+                    printf(", %d($sp)\n", -paramSize - 4);
                     paramSize += 4;
                     break;
                 case 14:
-                    if (!paramSize)
+                    if (!paramSize) {
                         printf("sw $ra, -4($sp)\n");
-                    printf("sub $sp, $sp, %d\n", 4 + paramSize);
+                        paramSize += 4;
+                    }
+                    printf("sub $sp, $sp, %d\n", paramSize);
                     printf("jal f%s\n", ((funcInfo *)(prtCode->arg1.value))->name);
-                    printf("add $sp, $sp, %d\n", paramSize + 4);
+                    printf("add $sp, $sp, %d\n", paramSize);
                     printf("lw $ra, -4($sp)\n");
                     paramSize = 0;
                     if (prtCode->target < 10)
@@ -215,6 +219,7 @@ void printTargetCode()
                 case 16:
                     printf("sub $sp, $sp, 4\n");
                     printf("sw $ra, 0($sp)\n");
+                    paramSize = 4;
                     if (prtCode->arg1.isImm == 0) {
                         if (prtCode->arg1.value < 10)
                             printf("move $a0, $t%d\n", prtCode->arg1.value);
@@ -227,6 +232,7 @@ void printTargetCode()
                     printf("jal write\n");
                     printf("lw $ra, 0($sp)\n");
                     printf("add $sp, $sp, 4\n");
+                    paramSize = 0;
                     break;
                 default:
                     processValueSt(&prtCode->arg1);
@@ -351,7 +357,7 @@ static int getOffsetOfVar(varInfo *var)
 {
     int offset;
 
-    offset = var->offset;
+    offset = var->offset + paramSize;
     if (isParam(prtFunc->paramList, var))       //param of function
         offset += prtFunc->space;
     return offset;
