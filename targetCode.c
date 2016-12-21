@@ -328,7 +328,7 @@ static void processValueSt(valueSt *st)
     if (!st->isImm || st->isImm == 2)
         printf("lw $s%d, %d($sp)\n", sarg, offset);
     else
-        printf("addi sarg, $sp, %d\n", offset);
+        printf("addi $s%d, $sp, %d\n", sarg, offset);
     st->isImm = 6;
     st->value = sarg;
 }
