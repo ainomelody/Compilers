@@ -26,9 +26,11 @@ void printTargetCode()
             printf("main:\n");
         else
             printf("f%s:\n", prtFunc->info->name);
-        printf("addi $sp, $sp, -%d\n", prtFunc->space);     //alloc space for local var
+        if (prtFunc->space)
+            printf("addi $sp, $sp, -%d\n", prtFunc->space);     //alloc space for local var
 
         prtCode = prtFunc->code->next;
+        paramSize = 0;
         while (prtCode != prtFunc->code) {
             switch(prtCode->op) {
                 case 1:
@@ -167,7 +169,8 @@ void printTargetCode()
                         printValueSt(&prtCode->arg1);
                         putchar('\n');
                     }
-                    printf("add $sp, $sp, %d\n", prtFunc->space);
+                    if (prtFunc->space)
+                        printf("add $sp, $sp, %d\n", prtFunc->space);
                     printf("jr $ra\n");
                     break;
                 case 13:
@@ -185,9 +188,11 @@ void printTargetCode()
                     break;
                 case 14:
                     printf("move $a3, $ra\n");
-                    printf("sub $sp, $sp, %d\n", paramSize);
+                    if (paramSize)
+                        printf("sub $sp, $sp, %d\n", paramSize);
                     printf("jal f%s\n", ((funcInfo *)(prtCode->arg1.value))->name);
-                    printf("add $sp, $sp, %d\n", paramSize);
+                    if (paramSize)
+                        printf("add $sp, $sp, %d\n", paramSize);
                     printf("move $ra, $a3\n");
                     paramSize = 0;
                     if (prtCode->target < 10)
