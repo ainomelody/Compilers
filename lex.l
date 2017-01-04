@@ -86,7 +86,7 @@ ID {character}[A-Za-z_0-9]*
 {ELSE} {yylval = newNode("ELSE", yylineno); return ELSE;}
 {WHILE} {yylval = newNode("WHILE", yylineno); return WHILE;}
 {ID} {char *ptr = malloc(36); yylval = newNode("ID", yylineno); strncpy(yylval->data.id = ptr, yytext, 31); ptr[31] = '\0'; return ID;}
-\/\*(.|\n)*\*\/ {char *loc = strrchr(yytext, '\n'); if (loc) yycolumn = strlen(loc);}
+\/\* {char c1 = ' ', c2 = input(); while(1) {if (c1 == '*' && c2 == '/') break; c1 = c2; c2 = input();}}
 \/\/(.)*\n {yycolumn = 1;}
 . {printf("Error type A at line %d: Mystirious charachter '%s'\n", yylineno, yytext); exit(0);}
 %%
