@@ -3,6 +3,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdarg.h>
+#include <ctype.h>
 
 Node *newNode(char *type, int lineNum)
 {
@@ -19,9 +20,12 @@ Node *newNode(char *type, int lineNum)
 void printTree(Node *tree, int level)
 {
 	int i;
-
+    
+    if (tree->child == NULL && islower(tree->type[1]))
+        goto showSibling;
 	for (i = 0; i < 2 * level; i++)
 		putchar(' ');
+    if (tree->type[1])
 	printf("%s", tree->type);
 	if (tree->child != NULL)
 	{
@@ -41,7 +45,7 @@ void printTree(Node *tree, int level)
 		else
 			printf("\n");
 	}
-
+    showSibling:
 	if (tree->sibling != NULL)
 		printTree(tree->sibling, level);
 }
